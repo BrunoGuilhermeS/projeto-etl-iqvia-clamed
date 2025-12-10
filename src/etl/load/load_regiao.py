@@ -1,9 +1,6 @@
 from src.etl.db.connection import get_connection
-from src.etl.load.load_regiao import load_regiao
-from src.etl.load.load_regiao import load_produto
 import psycopg2 as pg
 import pandas as pd
-import sys
 import os
 
 

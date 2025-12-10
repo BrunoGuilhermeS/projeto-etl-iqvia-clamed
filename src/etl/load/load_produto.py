@@ -1,11 +1,16 @@
-import os
+import psycopg2 as pg
 import pandas as pd
-from src.db.connection import get_connection
+from src.etl.db.connection import get_connection
+import os
 
 
 def load_produtos():
 
-    df = pd.read_csv("../data/clean_datasets/filial_clean.csv")
+    ROOT = os.path.abspath(os.path.join(
+        os.path.dirname(__file__), "../../../"))
+    csv_path = os.path.join(ROOT, "data", "clean_datasets", "filial_clean.csv")
+
+    df = pd.read_csv(csv_path)
 
     df_produtos = df[["cod_cean", "cod_prod",
                       "nome_produto"]].drop_duplicates()
