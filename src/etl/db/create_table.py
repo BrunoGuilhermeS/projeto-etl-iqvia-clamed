@@ -2,31 +2,32 @@ import psycopg2
 
 from connection import get_connection
 
+
 def create_tables():
 
-        commands = [
-            """
+    commands = [
+        """
             CREATE TABLE IF NOT EXISTS regiao (
                 id_regiao SERIAL PRIMARY KEY,
                 nome_regiao VARCHAR(100) NOT NULL
             );
             """,
-            """
+        """
             CREATE TABLE IF NOT EXISTS bandeira (
                 id_bandeira SERIAL PRIMARY KEY,
                 nome_bandeira VARCHAR(100) NOT NULL,
                 tipo_bandeira VARCHAR(50) NOT NULL
             );
             """,
-            """
+        """
             CREATE TABLE IF NOT EXISTS produtos (
                 id_produto SERIAL PRIMARY KEY,
-                cod_cean VARCHAR(20) NOT NULL,
-                cod_prod VARCHAR(50),
+                cod_ean VARCHAR(20) NOT NULL,
+                cod_prod_catarinense VARCHAR(50),
                 nome_produto VARCHAR(200) NOT NULL
             );
             """,
-            """
+        """
             CREATE TABLE IF NOT EXISTS filial (
                 id_filial SERIAL PRIMARY KEY,
                 nome_filial VARCHAR(150) NOT NULL,
@@ -38,7 +39,7 @@ def create_tables():
                     ON DELETE RESTRICT
             );
             """,
-            """
+        """
             CREATE TABLE IF NOT EXISTS volume_vendas (
                 id_regiao      INTEGER NOT NULL,
                 id_bandeira    INTEGER NOT NULL,
@@ -59,7 +60,7 @@ def create_tables():
                     FOREIGN KEY (id_produto) REFERENCES produtos(id_produto)
             );
             """,
-            """
+        """
             CREATE TABLE IF NOT EXISTS vendas_filial_pp (
                 id_filial     INTEGER NOT NULL,
                 id_produto    INTEGER NOT NULL,
@@ -76,21 +77,22 @@ def create_tables():
                     FOREIGN KEY (id_produto) REFERENCES produtos(id_produto)
             );
             """
-        ]
-        try:
-            conn = get_connection()
-            cur = conn.cursor()
+    ]
+    try:
+        conn = get_connection()
+        cur = conn.cursor()
 
-            for command in commands:
-                cur.execute(command)
+        for command in commands:
+            cur.execute(command)
 
-            conn.commit()
-            cur.close()
-            conn.close()
-            print("Tabelas criadas com sucesso!")
+        conn.commit()
+        cur.close()
+        conn.close()
+        print("Tabelas criadas com sucesso!")
 
-        except psycopg2.Error as e:
-            print("Erro ao criar tabelas:", e)
+    except psycopg2.Error as e:
+        print("Erro ao criar tabelas:", e)
+
 
 if __name__ == "__main__":
     create_tables()

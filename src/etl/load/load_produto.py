@@ -8,26 +8,27 @@ def load_produto():
 
     ROOT = os.path.abspath(os.path.join(
         os.path.dirname(__file__), "../../../"))
-    csv_path = os.path.join(ROOT, "data", "clean_datasets", "filial_clean.csv")
+    csv_path = os.path.join(
+        ROOT, "data", "clean_datasets", "market_sales_12_2022.csv")
 
     df = pd.read_csv(csv_path)
 
-    df_produtos = df[["cod_cean", "cod_prod",
-                      "nome_produto"]].drop_duplicates()
+    df_produtos = df[["cod_ean", "cod_prod_catarinense",
+                      "nome_produto"]].drop_duplicates().copy()
 
     try:
         conn = get_connection()
         cursor = conn.cursor()
 
         insert_sql = """
-        INSERT INTO produtos (cod_cean, cod_prod, nome_produto)
+        INSERT INTO produtos (cod_ean, cod_prod_catarinense, nome_produto)
         VALUES (%s, %s, %s)
         ON CONFLICT DO NOTHING;
         """
 
         for _, row in df_produtos.iterrows():
             cursor.execute(insert_sql,
-                           (str(row['cod_cean']), str(row['cod_prod']) if not pd.isna(row["cod_prod"]) else None, row['nome_produto']
+                           (str(row['cod_ean']), str(row['cod_prod_catarinense']) if not pd.isna(row["cod_prod_catarinense"]) else None, row['nome_produto']
                             )
                            )
 
@@ -43,4 +44,4 @@ def load_produto():
 
 
 if __name__ == "__main__":
-    load_produtos()
+    load_produto()
