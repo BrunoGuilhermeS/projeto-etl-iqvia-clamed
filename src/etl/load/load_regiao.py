@@ -7,7 +7,6 @@ import os
 def load_regiao():
 
     csv_path = os.path.join("data", "clean_datasets", "filial_clean.csv")
-
     df = pd.read_csv(csv_path)
 
     # print(df.head())
@@ -16,14 +15,18 @@ def load_regiao():
 
     try:
         conn = get_connection()
-        cur = conn.cursor()
+        cursor = conn.cursor()
 
         insert_sql = """INSERT INTO regiao(id_regiao, nome_regiao)
                     VALUES (%s, %s)
                     ON CONFLICT (id_regiao) DO NOTHING;
         """
         for _, row in df_regiao.iterrows():
-            cur.execute(insert_sql, (int(row["codigo_regiao"]), row["regiao"]))
+            cursor.execute(insert_sql, 
+                           (int(row["codigo_regiao"]), 
+                            row["regiao"]
+                            )
+                            )
 
             conn.commit()
             print("Regiões carregadas com sucesso!")
@@ -32,7 +35,7 @@ def load_regiao():
         print("Erro ao inserir regiões:", e)
 
     finally:
-        cur.close()
+        cursor.close()
         conn.close()
 
 
