@@ -4,7 +4,7 @@ from src.etl.db.connection import get_connection
 import os
 
 
-def load_produtos():
+def load_produto():
 
     ROOT = os.path.abspath(os.path.join(
         os.path.dirname(__file__), "../../../"))
