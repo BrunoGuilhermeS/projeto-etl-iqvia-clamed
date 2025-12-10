@@ -1,21 +1,19 @@
+from src.etl.db.connection import get_connection
+from src.etl.load.load_regiao import load_regiao
+from src.etl.load.load_regiao import load_produto
 import psycopg2 as pg
 import pandas as pd
 import sys
 import os
-ROOT_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../"))
-sys.path.append(ROOT_PATH)
-from src.db.connection import get_connection
 
 
 def load_regiao():
 
-    ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../"))
-
-    csv_path = os.path.join(ROOT, "data", "clean_datasets", "filial_clean.csv")
+    csv_path = os.path.join("data", "clean_datasets", "filial_clean.csv")
 
     df = pd.read_csv(csv_path)
 
-    #print(df.head())
+    # print(df.head())
 
     df_regiao = df[["codigo_regiao", "regiao"]].drop_duplicates()
 
@@ -28,7 +26,7 @@ def load_regiao():
                     ON CONFLICT (id_regiao) DO NOTHING;
         """
         for _, row in df_regiao.iterrows():
-            cur.execute(insert_sql,(int(row["codigo_regiao"]), row["regiao"]))
+            cur.execute(insert_sql, (int(row["codigo_regiao"]), row["regiao"]))
 
             conn.commit()
             print("Regiões carregadas com sucesso!")
