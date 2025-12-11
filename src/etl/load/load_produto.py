@@ -28,7 +28,7 @@ def load_produto():
 
         for _, row in df_produtos.iterrows():
             cursor.execute(insert_sql,
-                           (str(row['cod_ean']), str(row['cod_prod_catarinense']) if not pd.isna(row["cod_prod_catarinense"]) else None, row['nome_produto']
+                           (int(row['cod_ean']), str(row['cod_prod_catarinense']) if not pd.isna(row["cod_prod_catarinense"]) else None, row['nome_produto']
                             )
                            )
 
