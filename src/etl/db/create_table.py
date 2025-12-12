@@ -22,7 +22,7 @@ def create_tables():
         """
             CREATE TABLE IF NOT EXISTS produtos (
                 id_produto SERIAL PRIMARY KEY,
-                cod_ean VARCHAR(20) NOT NULL,
+                cod_ean INTEGER NOT NULL,
                 cod_prod_catarinense VARCHAR(50),
                 nome_produto VARCHAR(200) NOT NULL
             );

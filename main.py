@@ -9,13 +9,13 @@ import pandas as pd
 
 print('ok')
 
-#convert_filial_brick("./data/xlsx_raw/MS_12_2022_sample.xlsx")
+# convert_filial_brick("./data/xlsx_raw/MS_12_2022_sample.xlsx")
 
-#df = pd.read_csv("./data/clean_datasets/market_sales_12_2022.csv")
+# df = pd.read_csv("./data/clean_datasets/market_sales_12_2022.csv")
 
-#load_regiao()
-#load_produto()
-#load_filial()
-#load_bandeira()
-#load_volume_vendas()
-#print(df.head())
+load_regiao()
+load_produto()
+load_filial()
+load_bandeira()
+load_volume_vendas()
+# print(df.head())
