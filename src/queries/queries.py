@@ -3,7 +3,7 @@ from src.etl.db.connection import get_connection
 
 # src/analysis/queries.py
 
-
+# Abrir conexão
 def select_df(sql: str, params=None):
     conn = get_connection()
     df = pd.read_sql(sql, conn, params=params)

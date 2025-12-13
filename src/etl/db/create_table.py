@@ -1,6 +1,8 @@
 import psycopg2
 
-from connection import get_connection
+from src.etl.db.connection import get_connection
+
+# Função para criar as tabelas no banco de dados
 
 
 def create_tables():
