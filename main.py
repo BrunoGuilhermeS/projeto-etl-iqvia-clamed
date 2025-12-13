@@ -1,25 +1,37 @@
-from src.etl.convert_csv.converter_csv import convert_filial_brick
+from src.etl.extract_csv.extract_csv import convert_filial_brick
 from src.etl.load.load_regiao import load_regiao
 from src.etl.load.load_produto import load_produto
 from src.etl.load.load_filial import load_filial
 from src.etl.load.load_bandeira import load_bandeira
 from src.etl.load.load_volume_vendas import load_volume_vendas
-from src.analysis.queries import get_volume_vendas
-import psycopg2 as pg
-import pandas as pd
+from src.queries.queries import get_volume_vendas
+from src.etl.db.create_table import create_tables
 
-print('ok')
 
-# convert_filial_brick("./data/xlsx_raw/MS_12_2022_sample.xlsx")
+def main():
+    print('Iniciando ETL')
 
-# df = pd.read_csv("./data/clean_datasets/market_sales_12_2022.csv")
+    print('Criando tabelas...')
+    create_tables()
 
-'''
-load_regiao()
-load_produto()
-load_filial()
-load_bandeira()
-load_volume_vendas()
-df = get_volume_vendas()
-# print(df.head())
-# '''
+    print('Carregando regiões...')
+    load_regiao()
+
+    print('Carregando produtos...')
+    load_produto()
+
+    print('Carregando bandeiras...')
+    load_bandeira()
+
+    print('Carregando filiais...')
+    load_filial()
+
+    print('Carregando volume de vendas...')
+    load_volume_vendas()
+
+    df = get_volume_vendas()
+    print(df.head(20))
+
+
+if __name__ == "__main__":
+    main()

@@ -22,14 +22,14 @@ def load_regiao():
                     ON CONFLICT (id_regiao) DO NOTHING;
         """
         for _, row in df_regiao.iterrows():
-            cursor.execute(insert_sql, 
-                           (int(row["codigo_regiao"]), 
+            cursor.execute(insert_sql,
+                           (int(row["codigo_regiao"]),
                             row["regiao"]
                             )
-                            )
+                           )
 
             conn.commit()
-            print("Regiões carregadas com sucesso!")
+        print("Regiões carregadas com sucesso!")
 
     except Exception as e:
         print("Erro ao inserir regiões:", e)
