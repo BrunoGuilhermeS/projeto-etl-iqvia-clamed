@@ -4,7 +4,7 @@ from src.etl.load.load_produto import load_produto
 from src.etl.load.load_filial import load_filial
 from src.etl.load.load_bandeira import load_bandeira
 from src.etl.load.load_volume_vendas import load_volume_vendas
-from src.analysis.data_frame import get_volume_vendas
+from src.analysis.queries import get_volume_vendas
 import psycopg2 as pg
 import pandas as pd
 
