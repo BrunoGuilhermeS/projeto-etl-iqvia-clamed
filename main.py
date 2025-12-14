@@ -7,7 +7,7 @@ from src.etl.load.load_filial import load_filial
 from src.etl.load.load_bandeira import load_bandeira
 from src.etl.load.load_volume_vendas import load_volume_vendas
 from src.queries.queries import get_volume_vendas
-from src.etl.db.create_table import create_tables
+from src.etl.db.create_table import create_tables, create_comments
 
 
 def main():
@@ -19,6 +19,9 @@ def main():
 
     print('Criando tabelas...')
     create_tables()
+
+    print('Gerando comentários...')
+    create_comments()
 
     print('Carregando regiões...')
     load_regiao()

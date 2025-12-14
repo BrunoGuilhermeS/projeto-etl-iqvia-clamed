@@ -80,6 +80,7 @@ def create_tables():
             );
             """
     ]
+
     try:
         conn = get_connection()
         cur = conn.cursor()
@@ -96,5 +97,66 @@ def create_tables():
         print("Erro ao criar tabelas:", e)
 
 
+def create_comments():
+
+    comments = [
+        """
+        COMMENT ON TABLE regiao IS 'Dimensão de regiões comerciais';
+
+        COMMENT ON COLUMN regiao.id_regiao IS 'Chave primária da região';
+        COMMENT ON COLUMN regiao.nome_regiao IS 'Nome da região comercial';
+        """,
+        """
+            COMMENT ON TABLE bandeira IS 'Dimensão de bandeiras do mercado (própria, concorrente, PP)';
+
+            COMMENT ON COLUMN bandeira.id_bandeira IS 'Identificador único da bandeira';
+            COMMENT ON COLUMN bandeira.nome_bandeira IS 'Nome da bandeira comercial';
+            COMMENT ON COLUMN bandeira.tipo_bandeira IS 'Classificação da bandeira (CLAMED, CONCORRENTE, PRECO POPULAR)';
+        """,
+
+        """
+            COMMENT ON TABLE produtos IS 'Dimensão de produtos comercializados';
+
+            COMMENT ON COLUMN produtos.id_produto IS 'Identificador interno do produto';
+            COMMENT ON COLUMN produtos.cod_ean IS 'Código EAN do produto';
+            COMMENT ON COLUMN produtos.cod_prod_catarinense IS 'Código interno do produto na base Catarinense';
+            COMMENT ON COLUMN produtos.nome_produto IS 'Descrição/nome comercial do produto';
+        """,
+        """
+        COMMENT ON TABLE volume_vendas IS 'Fato de volume de vendas agregado por região, bandeira e produto';
+
+        COMMENT ON COLUMN volume_vendas.id_regiao IS 'Região onde a venda ocorreu';
+        COMMENT ON COLUMN volume_vendas.id_bandeira IS 'Bandeira associada à venda';
+        COMMENT ON COLUMN volume_vendas.id_produto IS 'Produto vendido';
+        COMMENT ON COLUMN volume_vendas.volume_venda IS 'Quantidade vendida no período';
+        COMMENT ON COLUMN volume_vendas.periodo IS 'Período de referência da venda (mês/ano)';
+        """,
+        """
+        COMMENT ON TABLE vendas_filial_pp IS 'Fato de vendas por filial para bandeira Preço Popular';
+
+        COMMENT ON COLUMN vendas_filial_pp.id_filial IS 'Identificador da filial';
+        COMMENT ON COLUMN vendas_filial_pp.id_produto IS 'Produto vendido na filial';
+        COMMENT ON COLUMN vendas_filial_pp.volume_venda IS 'Quantidade vendida';
+        COMMENT ON COLUMN vendas_filial_pp.periodo IS 'Período de referência da venda';
+        """
+    ]
+
+    try:
+        conn = get_connection()
+        cur = conn.cursor()
+
+        for comment in comments:
+            cur.execute(comment)
+
+        conn.commit()
+        cur.close()
+        conn.close()
+        print("Comentários criados com sucesso!")
+
+    except psycopg2.Error as e:
+        print("Erro ao criar comentários:", e)
+
+
 if __name__ == "__main__":
     create_tables()
+    create_comments()
