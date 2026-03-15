@@ -9,6 +9,17 @@ def create_tables():
 
     commands = [
         """
+            CREATE SCHEMA IF NOT EXISTS bronze;
+            """,
+
+            """
+            CREATE SCHEMA IF NOT EXISTS silver;
+            """,
+
+            """
+            CREATE SCHEMA IF NOT EXISTS gold;
+            """,
+        """
             CREATE TABLE IF NOT EXISTS regiao (
                 id_regiao SERIAL PRIMARY KEY,
                 nome_regiao VARCHAR(100) NOT NULL
@@ -71,19 +82,7 @@ def create_tables():
                     FOREIGN KEY (sk_produto) REFERENCES gold.produtos(sk_produto)
             );
             """,
-            """
-            CREATE SCHEMA IF NOT EXISTS bronze;
-            """,
-
-            """
-            CREATE SCHEMA IF NOT EXISTS silver;
-            """,
-
-            """
-            CREATE SCHEMA IF NOT EXISTS gold;
-            """,
-
-            """
+        """
             CREATE TABLE IF NOT EXISTS bronze.produtos_raw (
                 id_produto_original INTEGER,
                 cod_ean INTEGER,
@@ -92,7 +91,7 @@ def create_tables():
             );
             """,
 
-            """
+        """
             CREATE TABLE IF NOT EXISTS silver.produtos_clean (
                 id_produto_original INTEGER,
                 cod_ean INTEGER,
@@ -100,7 +99,7 @@ def create_tables():
                 nome_produto VARCHAR(200)
             );
             """,
-            """
+        """
             CREATE TABLE IF NOT EXISTS gold.produtos (
                 sk_produto SERIAL PRIMARY KEY,
 
@@ -114,18 +113,18 @@ def create_tables():
                 flag_ativo BOOLEAN DEFAULT TRUE
             );
             """,
-            """
-            CREATE UNIQUE INDEX idx_produto_ativo
-                ON gold.produtos (id_produto_original)
-                WHERE flag_ativo = TRUE;"""
+        """
+            CREATE UNIQUE INDEX IF NOT EXISTS idx_produto_ativo
+            ON gold.produtos (id_produto_original)
+            WHERE flag_ativo = TRUE;"""
             ,
-            """
+        """
             CREATE TABLE IF NOT EXISTS bronze.filial_raw (
                 brick TEXT,
                 cod_filial INTEGER,
                 data_ingestao TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             );""",
-            """
+        """
             CREATE TABLE IF NOT EXISTS bronze.market_sales_raw (
             brick TEXT,
             ean BIGINT,
@@ -172,12 +171,12 @@ def create_comments():
         """,
 
         """
-            COMMENT ON TABLE produtos IS 'Dimensão de produtos comercializados';
+            COMMENT ON TABLE gold.produtos IS 'Dimensão de produtos comercializados';
 
-            COMMENT ON COLUMN produtos.sk_produto IS 'Identificador interno do produto';
-            COMMENT ON COLUMN produtos.cod_ean IS 'Código EAN do produto';
-            COMMENT ON COLUMN produtos.cod_prod_catarinense IS 'Código interno do produto na base Catarinense';
-            COMMENT ON COLUMN produtos.nome_produto IS 'Descrição/nome comercial do produto';
+            COMMENT ON COLUMN gold.produtos.sk_produto IS 'Identificador interno do produto';
+            COMMENT ON COLUMN gold.produtos.cod_ean IS 'Código EAN do produto';
+            COMMENT ON COLUMN gold.produtos.cod_prod_catarinense IS 'Código interno do produto na base Catarinense';
+            COMMENT ON COLUMN gold.produtos.nome_produto IS 'Descrição/nome comercial do produto';
         """,
         """
         COMMENT ON TABLE volume_vendas IS 'Fato de volume de vendas agregado por região, bandeira e produto';

@@ -51,4 +51,4 @@ def load_market_sales_raw(input_path):
 
     conn.close()
 
-    print("Market sales carregado na Bronze")
+    print("Market sales carregado na camada Bronze")

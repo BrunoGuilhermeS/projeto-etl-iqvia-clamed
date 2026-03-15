@@ -1,7 +1,9 @@
 import pandas as pd
+import pandas as pd
+from src.etl.db.connection import get_connection
 
 
-def extract_filial_brick(input_path: str,
+def silver_filial_transform(input_path: str,
                          output_path: str = "data/clean_datasets/filial_clean.csv"
                          ) -> None:
     # Lê o CSV
@@ -66,5 +68,16 @@ def extract_filial_brick(input_path: str,
     pd.set_option('display.max_colwidth', None)
 
     # Salva o CSV limpo
-    df.to_csv(output_path, index=False)
-    print(f"Arquivo limpo salvo em {output_path}")
+    conn = get_connection()
+
+    df.to_sql(
+        name="filial_clean",
+        con=conn,
+        schema="silver",
+        if_exists="append"
+        index=False
+    )
+
+    conn.close()
+
+    print("Dados inseridos na tabela silver.filial_clean")
