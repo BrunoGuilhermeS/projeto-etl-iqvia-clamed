@@ -1,13 +1,17 @@
 import pandas as pd
-import pandas as pd
 from src.etl.db.connection import get_connection
 
 
-def silver_filial_transform(input_path: str,
-                         output_path: str = "data/clean_datasets/filial_clean.csv"
-                         ) -> None:
+def silver_filial_transform():
     # Lê o CSV
-    df = pd.read_csv(input_path)
+    conn = get_connection()
+
+    conn.execute("TRUNCATE TABLE silver.filial_clean")
+
+    df = pd.read_sql(
+    "SELECT * FROM bronze.filial_raw",
+    conn
+    )
 
     # Corrige o nome das colunas
     df = df.rename(columns={
@@ -68,13 +72,12 @@ def silver_filial_transform(input_path: str,
     pd.set_option('display.max_colwidth', None)
 
     # Salva o CSV limpo
-    conn = get_connection()
 
-    df.to_sql(
+    df.to_sql (
         name="filial_clean",
         con=conn,
         schema="silver",
-        if_exists="append"
+        if_exists="append",
         index=False
     )
 
