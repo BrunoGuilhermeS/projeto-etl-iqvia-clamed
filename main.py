@@ -41,6 +41,7 @@ def main():
     df = get_volume_vendas()
     print(df.head(20))
 
-
+    print('Pipeline executado com sucesso.')
+    
 if __name__ == "__main__":
     main()

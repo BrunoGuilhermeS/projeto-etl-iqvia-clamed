@@ -21,15 +21,7 @@ def create_tables():
                 tipo_bandeira VARCHAR(50) NOT NULL
             );
             """,
-        """
-            CREATE TABLE IF NOT EXISTS produtos (
-                id_produto SERIAL PRIMARY KEY,
-                cod_ean INTEGER NOT NULL,
-                cod_prod_catarinense VARCHAR(50),
-                nome_produto VARCHAR(200) NOT NULL
-            );
-            """,
-        """
+            """
             CREATE TABLE IF NOT EXISTS filial (
                 id_filial SERIAL PRIMARY KEY,
                 nome_filial VARCHAR(150) NOT NULL,
@@ -45,12 +37,12 @@ def create_tables():
             CREATE TABLE IF NOT EXISTS volume_vendas (
                 id_regiao      INTEGER NOT NULL,
                 id_bandeira    INTEGER NOT NULL,
-                id_produto     INTEGER NOT NULL,
+                sk_produto     INTEGER NOT NULL,
                 volume_venda   NUMERIC(18,2) NOT NULL DEFAULT 0,
                 periodo        DATE NOT NULL,
 
                 CONSTRAINT pk_volume_vendas 
-                    PRIMARY KEY (id_regiao, id_bandeira, id_produto, periodo),
+                    PRIMARY KEY (id_regiao, id_bandeira, sk_produto, periodo),
 
                 CONSTRAINT fk_volume_regiao
                     FOREIGN KEY (id_regiao) REFERENCES regiao(id_regiao),
@@ -59,25 +51,90 @@ def create_tables():
                     FOREIGN KEY (id_bandeira) REFERENCES bandeira(id_bandeira),
 
                 CONSTRAINT fk_volume_produto
-                    FOREIGN KEY (id_produto) REFERENCES produtos(id_produto)
+                    FOREIGN KEY (sk_produto) REFERENCES gold.produtos(sk_produto)
             );
             """,
-        """
+            """
             CREATE TABLE IF NOT EXISTS vendas_filial_pp (
                 id_filial     INTEGER NOT NULL,
-                id_produto    INTEGER NOT NULL,
+                sk_produto    INTEGER NOT NULL,
                 volume_venda  NUMERIC(18,2) NOT NULL DEFAULT 0,
                 periodo       DATE NOT NULL,
 
                 CONSTRAINT pk_vendas_filial_pp 
-                    PRIMARY KEY (id_filial, id_produto, periodo),
+                    PRIMARY KEY (id_filial, sk_produto, periodo),
 
                 CONSTRAINT fk_venda_filial
                     FOREIGN KEY (id_filial) REFERENCES filial(id_filial),
 
                 CONSTRAINT fk_venda_produto
-                    FOREIGN KEY (id_produto) REFERENCES produtos(id_produto)
+                    FOREIGN KEY (sk_produto) REFERENCES gold.produtos(sk_produto)
             );
+            """,
+            """
+            CREATE SCHEMA IF NOT EXISTS bronze;
+            """,
+
+            """
+            CREATE SCHEMA IF NOT EXISTS silver;
+            """,
+
+            """
+            CREATE SCHEMA IF NOT EXISTS gold;
+            """,
+
+            """
+            CREATE TABLE IF NOT EXISTS bronze.produtos_raw (
+                id_produto_original INTEGER,
+                cod_ean INTEGER,
+                cod_prod_catarinense VARCHAR(50),
+                nome_produto VARCHAR(200)
+            );
+            """,
+
+            """
+            CREATE TABLE IF NOT EXISTS silver.produtos_clean (
+                id_produto_original INTEGER,
+                cod_ean INTEGER,
+                cod_prod_catarinense VARCHAR(50),
+                nome_produto VARCHAR(200)
+            );
+            """,
+            """
+            CREATE TABLE IF NOT EXISTS gold.produtos (
+                sk_produto SERIAL PRIMARY KEY,
+
+                id_produto_original INTEGER NOT NULL,
+                cod_ean INTEGER NOT NULL,
+                cod_prod_catarinense VARCHAR(50),
+                nome_produto VARCHAR(200) NOT NULL,
+
+                data_inicio_validade DATE NOT NULL,
+                data_fim_validade DATE,
+                flag_ativo BOOLEAN DEFAULT TRUE
+            );
+            """,
+            """
+            CREATE UNIQUE INDEX idx_produto_ativo
+                ON gold.produtos (id_produto_original)
+                WHERE flag_ativo = TRUE;"""
+            ,
+            """
+            CREATE TABLE IF NOT EXISTS bronze.filial_raw (
+                brick TEXT,
+                cod_filial INTEGER,
+                data_ingestao TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );""",
+            """
+            CREATE TABLE IF NOT EXISTS bronze.market_sales_raw (
+            brick TEXT,
+            ean BIGINT,
+            cod_prod_catarinense INTEGER,
+            si_conc_un NUMERIC,
+            so_conc_un NUMERIC,
+            pp_un NUMERIC,
+            data_ingestao TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
             """
     ]
 
@@ -117,7 +174,7 @@ def create_comments():
         """
             COMMENT ON TABLE produtos IS 'Dimensão de produtos comercializados';
 
-            COMMENT ON COLUMN produtos.id_produto IS 'Identificador interno do produto';
+            COMMENT ON COLUMN produtos.sk_produto IS 'Identificador interno do produto';
             COMMENT ON COLUMN produtos.cod_ean IS 'Código EAN do produto';
             COMMENT ON COLUMN produtos.cod_prod_catarinense IS 'Código interno do produto na base Catarinense';
             COMMENT ON COLUMN produtos.nome_produto IS 'Descrição/nome comercial do produto';
@@ -127,7 +184,7 @@ def create_comments():
 
         COMMENT ON COLUMN volume_vendas.id_regiao IS 'Região onde a venda ocorreu';
         COMMENT ON COLUMN volume_vendas.id_bandeira IS 'Bandeira associada à venda';
-        COMMENT ON COLUMN volume_vendas.id_produto IS 'Produto vendido';
+        COMMENT ON COLUMN volume_vendas.sk_produto IS 'Produto vendido';
         COMMENT ON COLUMN volume_vendas.volume_venda IS 'Quantidade vendida no período';
         COMMENT ON COLUMN volume_vendas.periodo IS 'Período de referência da venda (mês/ano)';
         """,
@@ -135,7 +192,7 @@ def create_comments():
         COMMENT ON TABLE vendas_filial_pp IS 'Fato de vendas por filial para bandeira Preço Popular';
 
         COMMENT ON COLUMN vendas_filial_pp.id_filial IS 'Identificador da filial';
-        COMMENT ON COLUMN vendas_filial_pp.id_produto IS 'Produto vendido na filial';
+        COMMENT ON COLUMN vendas_filial_pp.sk_produto IS 'Produto vendido na filial';
         COMMENT ON COLUMN vendas_filial_pp.volume_venda IS 'Quantidade vendida';
         COMMENT ON COLUMN vendas_filial_pp.periodo IS 'Período de referência da venda';
         """

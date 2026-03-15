@@ -21,8 +21,14 @@ def load_produto():
         cursor = conn.cursor()
 
         insert_sql = """
-        INSERT INTO produtos (cod_ean, cod_prod_catarinense, nome_produto)
-        VALUES (%s, %s, %s)
+        INSERT INTO produtos (
+            cod_ean,
+            cod_prod_catarinense,
+            nome_produto,
+            data_inicio_validade,
+            flag_ativo
+        )
+        VALUES (%s, %s, %s, CURRENT_DATE, TRUE)
         ON CONFLICT DO NOTHING;
         """
 

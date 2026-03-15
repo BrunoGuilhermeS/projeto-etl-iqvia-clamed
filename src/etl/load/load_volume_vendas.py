@@ -56,20 +56,23 @@ def load_volume_vendas():
         conn = get_connection()
         cursor = conn.cursor()
 
-        #SQL para buscar id_produto
+        #SQL para buscar sk_produto
         sql_get_produto = """
-            SELECT id_produto FROM produtos WHERE cod_ean = %s
-        """
+            SELECT sk_produto 
+            FROM produtos 
+            WHERE cod_ean = %s
+            AND flag_ativo = TRUE
+            """
 
         #SQL para inserir volume
         sql_insert = """
-            INSERT INTO volume_vendas (id_regiao, id_bandeira, id_produto, volume_venda, periodo)
+            INSERT INTO volume_vendas (id_regiao, id_bandeira, sk_produto, volume_venda, periodo)
             VALUES (%s, %s, %s, %s, %s)
         """
 
         for _, row in df_long.iterrows():
 
-            #busca id_produto
+            #busca sk_produto
             cursor.execute(sql_get_produto, (row["cod_ean"],))
             result = cursor.fetchone()
 
@@ -77,13 +80,13 @@ def load_volume_vendas():
                 print(f"[AVISO] Produto com EAN {row['cod_ean']} não encontrado. Pulando…")
                 continue
 
-            id_produto = result[0]
+            sk_produto = result[0]
 
             #executa no banco
             cursor.execute(sql_insert, (
                 row["cod_regiao"],
                 row["id_bandeira"],
-                id_produto,
+                sk_produto,
                 row["volume_venda"],
                 periodo
             ))
