@@ -21,22 +21,29 @@ def load_produto():
         cursor = conn.cursor()
 
         insert_sql = """
-        INSERT INTO produtos (
-            cod_ean,
-            cod_prod_catarinense,
-            nome_produto,
-            data_inicio_validade,
-            flag_ativo
-        )
-        VALUES (%s, %s, %s, CURRENT_DATE, TRUE)
-        ON CONFLICT DO NOTHING;
+            INSERT INTO gold.produtos (
+                id_produto_original,
+                cod_ean,
+                cod_prod_catarinense,
+                nome_produto,
+                data_inicio_validade,
+                flag_ativo
+            )
+            -- Note que agora temos 4 placeholders e 2 valores fixos, totalizando 6
+            VALUES (%s, %s, %s, %s, CURRENT_DATE, TRUE) 
+            ON CONFLICT DO NOTHING;
         """
 
         for _, row in df_produtos.iterrows():
-            cursor.execute(insert_sql,
-                           (int(row['cod_ean']), str(row['cod_prod_catarinense']) if not pd.isna(row["cod_prod_catarinense"]) else None, row['nome_produto']
-                            )
-                           )
+            id_original = int(row['cod_ean']) 
+            
+            # A tupla abaixo tem exatamente 4 itens, batendo com os 4 %s acima
+            cursor.execute(insert_sql, (
+                id_original,
+                int(row['cod_ean']),
+                str(int(row['cod_prod_catarinense'])) if not pd.isna(row["cod_prod_catarinense"]) else None,
+                row['nome_produto']
+            ))
 
         conn.commit()
         print("Produtos carregados com sucesso!")

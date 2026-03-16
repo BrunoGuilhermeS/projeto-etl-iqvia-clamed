@@ -59,7 +59,7 @@ def load_volume_vendas():
         #SQL para buscar sk_produto
         sql_get_produto = """
             SELECT sk_produto 
-            FROM produtos 
+            FROM gold.produtos 
             WHERE cod_ean = %s
             AND flag_ativo = TRUE
             """

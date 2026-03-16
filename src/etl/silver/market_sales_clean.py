@@ -1,48 +1,71 @@
 import pandas as pd
 import numpy as np
-import os
+from src.etl.db.connection import get_connection
 
+def silver_market_sales_transform():
+    # 1. Conexão pura psycopg2
+    conn = get_connection()
+    cur = conn.cursor()
 
-def extract_market_sales(input_path: str,
-                         output_path: str = "data/clean_datasets/market_sales_12_2022.csv") -> None:
-    """
-    Extrai e trata o arquivo de vendas de mercado (IQVIA / concorrentes)
-    e salva o CSV limpo para análise e carga no banco.
-    """
+    # 2. Leitura da Bronze (usando o cursor para ler)
+    # Como read_sql dá erro com psycopg2 puro, usamos o comando manual
+    cur.execute("SELECT * FROM bronze.market_sales_raw")
+    columns = [desc[0] for desc in cur.description]
+    data = cur.fetchall()
+    df = pd.DataFrame(data, columns=columns)
 
-    df = pd.read_csv(input_path)
+    if df.empty:
+        print("Bronze vazia.")
+        cur.close()
+        conn.close()
+        return
 
-    # Corrigindo nome das colunas
+    # 3. Tratamentos (Seus códigos de limpeza)
+    df["nome_produto"] = None # No psycopg2, None vira NULL no banco
+    df["cod_regiao"] = df["brick"].astype(str).str.split(" - ").str[0].str.strip()
+    
+    # Renomeando para bater com a Silver
     df = df.rename(columns={
-        "BRICK": "cod_regiao",
-        "EAN": "cod_ean",
-        "Cod Prod Catarinense": "cod_prod_catarinense",
-        "Tipo Informacao SI Bandeira CONCORRENTE Unidade": "SI_CONC_UN",
-        "Tipo Informacao SO Bandeira CONCORRENTE Unidade": "SO_CONC_UN",
-        "Tipo Informacao SO Bandeira PRECO POPULAR Unidade": "PP_UN"
+        "ean": "cod_ean",
+        "si_conc_un": "si_conc_un",
+        "so_conc_un": "so_conc_un",
+        "pp_un": "pp_un"
     })
 
-    # Criando coluna de nome do produto (futuro enrichment)
-    df["nome_produto"] = np.nan
-
-    # Normalizando código da região
-    df["cod_regiao"] = (
-        df["cod_regiao"]
-        .astype(str)
-        .str.split(" - ")
-        .str[0]
-        .str.replace(" ", "")
-    )
-
     # Preenchendo NaN com 0
-    df["SI_CONC_UN"] = df["SI_CONC_UN"].fillna(0)
-    df["SO_CONC_UN"] = df["SO_CONC_UN"].fillna(0)
-    df["PP_UN"] = df["PP_UN"].fillna(0)
+    cols_numeric = ["si_conc_un", "so_conc_un", "pp_un"]
+    df[cols_numeric] = df[cols_numeric].fillna(0)
 
-    # Garantindo pasta de saída
-    os.makedirs(os.path.dirname(output_path), exist_ok=True)
+    # 4. Carga na Silver (Truncate e Loop de Insert)
+    try:
+        cur.execute("TRUNCATE TABLE silver.market_sales_clean")
+        
+        # SQL de Inserção
+        insert_query = """
+            INSERT INTO silver.market_sales_clean (
+                cod_regiao, cod_ean, cod_prod_catarinense, 
+                si_conc_un, so_conc_un, pp_un, nome_produto
+            ) VALUES (%s, %s, %s, %s, %s, %s, %s)
+        """
 
-    # Salvando CSV tratado
-    df.to_csv(output_path, index=False)
+        # Executando a inserção para cada linha (padrão que você usou na Bronze)
+        for _, row in df.iterrows():
+            cur.execute(insert_query, (
+                row["cod_regiao"],
+                row["cod_ean"],
+                row["cod_prod_catarinense"],
+                row["si_conc_un"],
+                row["so_conc_un"],
+                row["pp_un"],
+                row["nome_produto"]
+            ))
 
-    print("Arquivo market_sales tratado com sucesso!")
+        conn.commit()
+        print("Dados processados e inseridos na silver.market_sales_clean!")
+
+    except Exception as e:
+        conn.rollback()
+        print(f"Erro na carga Silver: {e}")
+    finally:
+        cur.close()
+        conn.close()

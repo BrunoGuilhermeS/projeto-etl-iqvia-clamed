@@ -11,8 +11,9 @@ def load_bandeira():
         insert_sql = """
         INSERT INTO bandeira (id_bandeira, nome_bandeira, tipo_bandeira)
         VALUES (1, 'Preco Popular', 'PP'),
-        (2, 'Bandeiras Concorrentes SO', 'SO'),
-        (3, 'Bandeiras Concorrente SI', 'SI');
+            (2, 'Bandeiras Concorrentes SO', 'SO'),
+            (3, 'Bandeiras Concorrente SI', 'SI'),
+        ON CONFLICT (id_bandeira) DO NOTHING;
         """
 
         cursor.execute (insert_sql)

@@ -27,7 +27,8 @@ def create_tables():
             """,
         """
             CREATE TABLE IF NOT EXISTS bandeira (
-                id_bandeira SERIAL PRIMARY KEY,
+                sk_bandeira SERIAL PRIMARY KEY,
+                id_bandeira INTEGER UNIQUE,
                 nome_bandeira VARCHAR(100) NOT NULL,
                 tipo_bandeira VARCHAR(50) NOT NULL
             );
@@ -97,6 +98,26 @@ def create_tables():
                 cod_ean INTEGER,
                 cod_prod_catarinense VARCHAR(50),
                 nome_produto VARCHAR(200)
+            );
+            """,
+        """
+            CREATE TABLE IF NOT EXISTS silver.filial_clean (
+                regiao          VARCHAR(255),
+                codigo_filial   INTEGER,
+                codigo_regiao   VARCHAR(50),
+                data_limpeza    TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
+            """,
+        """
+            CREATE TABLE IF NOT EXISTS silver.market_sales_clean (
+                cod_regiao           VARCHAR(20),
+                cod_ean              BIGINT,
+                cod_prod_catarinense INTEGER,
+                si_conc_un           NUMERIC(18,2),
+                so_conc_un           NUMERIC(18,2),
+                pp_un                NUMERIC(18,2),
+                nome_produto         VARCHAR(200),
+                data_processamento   TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             );
             """,
         """
