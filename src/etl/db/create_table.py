@@ -86,18 +86,20 @@ def create_tables():
         """
             CREATE TABLE IF NOT EXISTS bronze.produtos_raw (
                 id_produto_original INTEGER,
-                cod_ean INTEGER,
+                cod_ean BIGINT,
                 cod_prod_catarinense VARCHAR(50),
-                nome_produto VARCHAR(200)
+                nome_produto VARCHAR(200),
+                valor_produto NUMERIC(18,2)
             );
             """,
 
         """
             CREATE TABLE IF NOT EXISTS silver.produtos_clean (
                 id_produto_original INTEGER,
-                cod_ean INTEGER,
+                cod_ean BIGINT,
                 cod_prod_catarinense VARCHAR(50),
-                nome_produto VARCHAR(200)
+                nome_produto VARCHAR(200),
+                valor_produto NUMERIC(18,2)
             );
             """,
         """
@@ -125,9 +127,10 @@ def create_tables():
                 sk_produto SERIAL PRIMARY KEY,
 
                 id_produto_original INTEGER NOT NULL,
-                cod_ean INTEGER NOT NULL,
+                cod_ean BIGINT NOT NULL,
                 cod_prod_catarinense VARCHAR(50),
                 nome_produto VARCHAR(200) NOT NULL,
+                valor_produto NUMERIC(18,2) NOT NULL DEFAULT 0,
 
                 data_inicio_validade DATE NOT NULL,
                 data_fim_validade DATE,
@@ -198,6 +201,8 @@ def create_comments():
             COMMENT ON COLUMN gold.produtos.cod_ean IS 'Código EAN do produto';
             COMMENT ON COLUMN gold.produtos.cod_prod_catarinense IS 'Código interno do produto na base Catarinense';
             COMMENT ON COLUMN gold.produtos.nome_produto IS 'Descrição/nome comercial do produto';
+            COMMENT ON COLUMN gold.produtos.valor_produto IS 'Preço unitário monitorado pelo SCD Tipo 2';
+            COMMENT ON COLUMN gold.produtos.flag_ativo IS 'Verdadeiro (TRUE) se for a versão mais atual do registro do produto';
         """,
         """
         COMMENT ON TABLE volume_vendas IS 'Fato de volume de vendas agregado por região, bandeira e produto';

@@ -5,7 +5,7 @@ from src.etl.silver.filial_clean import silver_filial_transform
 from src.etl.silver.market_sales_clean import silver_market_sales_transform
 
 from src.etl.load.load_regiao import load_regiao
-from src.etl.load.load_produto import load_produto
+from src.etl.load.load_gold_produto import load_gold_produtos
 from src.etl.load.load_filial import load_filial
 from src.etl.load.load_bandeira import load_bandeira
 from src.etl.load.load_volume_vendas import load_volume_vendas
@@ -42,7 +42,7 @@ def main():
 
     print("Carregando dimensões...")
     load_regiao()
-    load_produto()
+    load_gold_produtos()
     load_bandeira()
     load_filial()
 
