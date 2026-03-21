@@ -68,6 +68,9 @@ def load_volume_vendas():
         sql_insert = """
             INSERT INTO volume_vendas (id_regiao, id_bandeira, sk_produto, volume_venda, periodo)
             VALUES (%s, %s, %s, %s, %s)
+            ON CONFLICT ON CONSTRAINT pk_volume_vendas 
+            DO UPDATE SET 
+                volume_venda = EXCLUDED.volume_venda;
         """
 
         for _, row in df_long.iterrows():
