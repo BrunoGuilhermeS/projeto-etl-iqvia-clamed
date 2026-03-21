@@ -12,19 +12,19 @@ def select_df(sql: str, params=None):
 
 
 def get_regiao():
-    return select_df("SELECT * FROM regiao")
+    return select_df("SELECT * FROM gold.regiao")
 
 
 def get_bandeira():
-    return select_df("SELECT * FROM bandeira")
+    return select_df("SELECT * FROM gold.bandeira")
 
 
 def get_produtos():
-    return select_df("SELECT * FROM produtos")
+    return select_df("SELECT * FROM gold.produtos")
 
 
 def get_volume_vendas():
-    return select_df("SELECT * FROM volume_vendas")
+    return select_df("SELECT * FROM gold.volume_vendas")
 
 
 def get_volume_com_dimensoes():
@@ -35,7 +35,7 @@ def get_volume_com_dimensoes():
             p.cod_ean,
             v.volume_venda,
             v.periodo
-        FROM volume_vendas v
+        FROM gold.volume_vendas v
         JOIN regiao r    ON r.id_regiao = v.id_regiao
         JOIN bandeira b  ON b.id_bandeira = v.id_bandeira
         JOIN produtos p  ON p.id_produto = v.id_produto;

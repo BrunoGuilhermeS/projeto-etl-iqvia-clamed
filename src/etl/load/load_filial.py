@@ -1,39 +1,56 @@
-from src.etl.db.connection import get_connection
 import pandas as pd
-import os
+from src.etl.db.connection import get_connection
 
 def load_filial():
-    csv_path = os.path.join("data", "clean_datasets", "filial_clean.csv")
-    df = pd.read_csv(csv_path) 
-    df_filial = df[["codigo_filial", "codigo_regiao"]].copy()
-
+    print("🚀 Carregando Dimensão Filial a partir da Silver...")
+    
+    conn = None
     try:
         conn = get_connection()
         cursor = conn.cursor()
 
+        # 1. Busca os dados usando os nomes reais das colunas na Silver (HINT do erro anterior)
+        # Usamos 'AS' para renomear na saída do SQL e bater com o que o loop espera
+        query_silver = """
+            SELECT 
+                codigo_filial AS id_filial, 
+                codigo_regiao AS id_regiao 
+            FROM silver.filial_clean
+        """
+        cursor.execute(query_silver)
+        
+        # Converte para DataFrame
+        columns = [desc[0] for desc in cursor.description]
+        df = pd.DataFrame(cursor.fetchall(), columns=columns)
+
+        if df.empty:
+            print("⚠️ Camada Silver de filiais está vazia. Abortando carga.")
+            return
+
+        # 2. SQL de Inserção na Gold (Tabela final 'filial')
         insert_sql = """
-        INSERT INTO filial (id_filial, nome_filial, id_regiao)
-        VALUES (%s, %s, %s)
-        ON CONFLICT DO NOTHING
+            INSERT INTO gold.filial (id_filial, nome_filial, id_regiao)
+            VALUES (%s, %s, %s)
+            ON CONFLICT (id_filial) DO NOTHING;
         """
 
-        for _, row in df_filial.iterrows():
+        for _, row in df.iterrows():
             cursor.execute(insert_sql, (
-                int(row["codigo_filial"]),
-                "Desconhecido",
-                int(row["codigo_regiao"])
-                )
-                )
+                int(row["id_filial"]),
+                "Filial " + str(row["id_filial"]), # Nome genérico ou "Desconhecido"
+                int(row["id_regiao"])
+            ))
 
-        conn.commit()  # commit depois de inserir tudo
-        print("Filiais carregadas com sucesso")
+        conn.commit()
+        print("✅ Filiais carregadas com sucesso na Gold!")
 
     except Exception as e:
-        print("Erro ao inserir filiais:", e)
-
+        print(f"❌ Erro ao inserir filiais: {e}")
+        if conn: conn.rollback()
     finally:
-        cursor.close()
-        conn.close()
+        if conn:
+            cursor.close()
+            conn.close()
 
 if __name__ == "__main__":
     load_filial()

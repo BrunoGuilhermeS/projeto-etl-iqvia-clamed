@@ -8,7 +8,7 @@ from src.etl.db.connection import get_connection
 def create_tables():
 
     commands = [
-        """
+            """
             CREATE SCHEMA IF NOT EXISTS bronze;
             """,
 
@@ -20,13 +20,13 @@ def create_tables():
             CREATE SCHEMA IF NOT EXISTS gold;
             """,
         """
-            CREATE TABLE IF NOT EXISTS regiao (
+            CREATE TABLE IF NOT EXISTS gold.regiao (
                 id_regiao SERIAL PRIMARY KEY,
                 nome_regiao VARCHAR(100) NOT NULL
             );
             """,
         """
-            CREATE TABLE IF NOT EXISTS bandeira (
+            CREATE TABLE IF NOT EXISTS gold.bandeira (
                 sk_bandeira SERIAL PRIMARY KEY,
                 id_bandeira INTEGER UNIQUE,
                 nome_bandeira VARCHAR(100) NOT NULL,
@@ -34,19 +34,34 @@ def create_tables():
             );
             """,
             """
-            CREATE TABLE IF NOT EXISTS filial (
+            CREATE TABLE IF NOT EXISTS gold.filial (
                 id_filial SERIAL PRIMARY KEY,
                 nome_filial VARCHAR(150) NOT NULL,
                 id_regiao INTEGER NOT NULL,
                 CONSTRAINT fk_regiao
                     FOREIGN KEY (id_regiao)
-                    REFERENCES regiao(id_regiao)
+                    REFERENCES gold.regiao(id_regiao)
                     ON UPDATE CASCADE
                     ON DELETE RESTRICT
             );
             """,
+                    """
+            CREATE TABLE IF NOT EXISTS gold.produtos (
+                sk_produto SERIAL PRIMARY KEY,
+
+                id_produto_original INTEGER NOT NULL,
+                cod_ean BIGINT NOT NULL,
+                cod_prod_catarinense VARCHAR(50),
+                nome_produto VARCHAR(200) NOT NULL,
+                valor_produto NUMERIC(18,2) NOT NULL DEFAULT 0,
+
+                data_inicio_validade DATE NOT NULL,
+                data_fim_validade DATE,
+                flag_ativo BOOLEAN DEFAULT TRUE
+            );
+            """,
         """
-            CREATE TABLE IF NOT EXISTS volume_vendas (
+            CREATE TABLE IF NOT EXISTS gold.volume_vendas (
                 id_regiao      INTEGER NOT NULL,
                 id_bandeira    INTEGER NOT NULL,
                 sk_produto     INTEGER NOT NULL,
@@ -57,17 +72,17 @@ def create_tables():
                     PRIMARY KEY (id_regiao, id_bandeira, sk_produto, periodo),
 
                 CONSTRAINT fk_volume_regiao
-                    FOREIGN KEY (id_regiao) REFERENCES regiao(id_regiao),
+                    FOREIGN KEY (id_regiao) REFERENCES gold.regiao(id_regiao),
 
                 CONSTRAINT fk_volume_bandeira
-                    FOREIGN KEY (id_bandeira) REFERENCES bandeira(id_bandeira),
+                    FOREIGN KEY (id_bandeira) REFERENCES gold.bandeira(id_bandeira),
 
                 CONSTRAINT fk_volume_produto
                     FOREIGN KEY (sk_produto) REFERENCES gold.produtos(sk_produto)
             );
             """,
             """
-            CREATE TABLE IF NOT EXISTS vendas_filial_pp (
+            CREATE TABLE IF NOT EXISTS gold.vendas_filial_pp (
                 id_filial     INTEGER NOT NULL,
                 sk_produto    INTEGER NOT NULL,
                 volume_venda  NUMERIC(18,2) NOT NULL DEFAULT 0,
@@ -77,7 +92,7 @@ def create_tables():
                     PRIMARY KEY (id_filial, sk_produto, periodo),
 
                 CONSTRAINT fk_venda_filial
-                    FOREIGN KEY (id_filial) REFERENCES filial(id_filial),
+                    FOREIGN KEY (id_filial) REFERENCES gold.filial(id_filial),
 
                 CONSTRAINT fk_venda_produto
                     FOREIGN KEY (sk_produto) REFERENCES gold.produtos(sk_produto)
@@ -119,22 +134,8 @@ def create_tables():
                 so_conc_un           NUMERIC(18,2),
                 pp_un                NUMERIC(18,2),
                 nome_produto         VARCHAR(200),
+                periodo VARCHAR(10),
                 data_processamento   TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            );
-            """,
-        """
-            CREATE TABLE IF NOT EXISTS gold.produtos (
-                sk_produto SERIAL PRIMARY KEY,
-
-                id_produto_original INTEGER NOT NULL,
-                cod_ean BIGINT NOT NULL,
-                cod_prod_catarinense VARCHAR(50),
-                nome_produto VARCHAR(200) NOT NULL,
-                valor_produto NUMERIC(18,2) NOT NULL DEFAULT 0,
-
-                data_inicio_validade DATE NOT NULL,
-                data_fim_validade DATE,
-                flag_ativo BOOLEAN DEFAULT TRUE
             );
             """,
         """
@@ -156,6 +157,7 @@ def create_tables():
             si_conc_un NUMERIC,
             so_conc_un NUMERIC,
             pp_un NUMERIC,
+            periodo VARCHAR(10),
             data_ingestao TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
             """
@@ -181,17 +183,17 @@ def create_comments():
 
     comments = [
         """
-        COMMENT ON TABLE regiao IS 'Dimensão de regiões comerciais';
+        COMMENT ON TABLE gold.regiao IS 'Dimensão de regiões comerciais';
 
-        COMMENT ON COLUMN regiao.id_regiao IS 'Chave primária da região';
-        COMMENT ON COLUMN regiao.nome_regiao IS 'Nome da região comercial';
+        COMMENT ON COLUMN gold.regiao.id_regiao IS 'Chave primária da região';
+        COMMENT ON COLUMN gold.regiao.nome_regiao IS 'Nome da região comercial';
         """,
         """
-            COMMENT ON TABLE bandeira IS 'Dimensão de bandeiras do mercado (própria, concorrente, PP)';
+            COMMENT ON TABLE gold.bandeira IS 'Dimensão de bandeiras do mercado (própria, concorrente, PP)';
 
-            COMMENT ON COLUMN bandeira.id_bandeira IS 'Identificador único da bandeira';
-            COMMENT ON COLUMN bandeira.nome_bandeira IS 'Nome da bandeira comercial';
-            COMMENT ON COLUMN bandeira.tipo_bandeira IS 'Classificação da bandeira (CLAMED, CONCORRENTE, PRECO POPULAR)';
+            COMMENT ON COLUMN gold.bandeira.id_bandeira IS 'Identificador único da bandeira';
+            COMMENT ON COLUMN gold.bandeira.nome_bandeira IS 'Nome da bandeira comercial';
+            COMMENT ON COLUMN gold.bandeira.tipo_bandeira IS 'Classificação da bandeira (CLAMED, CONCORRENTE, PRECO POPULAR)';
         """,
 
         """
@@ -205,21 +207,21 @@ def create_comments():
             COMMENT ON COLUMN gold.produtos.flag_ativo IS 'Verdadeiro (TRUE) se for a versão mais atual do registro do produto';
         """,
         """
-        COMMENT ON TABLE volume_vendas IS 'Fato de volume de vendas agregado por região, bandeira e produto';
+        COMMENT ON TABLE gold.volume_vendas IS 'Fato de volume de vendas agregado por região, bandeira e produto';
 
-        COMMENT ON COLUMN volume_vendas.id_regiao IS 'Região onde a venda ocorreu';
-        COMMENT ON COLUMN volume_vendas.id_bandeira IS 'Bandeira associada à venda';
-        COMMENT ON COLUMN volume_vendas.sk_produto IS 'Produto vendido';
-        COMMENT ON COLUMN volume_vendas.volume_venda IS 'Quantidade vendida no período';
-        COMMENT ON COLUMN volume_vendas.periodo IS 'Período de referência da venda (mês/ano)';
+        COMMENT ON COLUMN gold.volume_vendas.id_regiao IS 'Região onde a venda ocorreu';
+        COMMENT ON COLUMN gold.volume_vendas.id_bandeira IS 'Bandeira associada à venda';
+        COMMENT ON COLUMN gold.volume_vendas.sk_produto IS 'Produto vendido';
+        COMMENT ON COLUMN gold.volume_vendas.volume_venda IS 'Quantidade vendida no período';
+        COMMENT ON COLUMN gold.volume_vendas.periodo IS 'Período de referência da venda (mês/ano)';
         """,
         """
-        COMMENT ON TABLE vendas_filial_pp IS 'Fato de vendas por filial para bandeira Preço Popular';
+        COMMENT ON TABLE gold.vendas_filial_pp IS 'Fato de vendas por filial para bandeira Preço Popular';
 
-        COMMENT ON COLUMN vendas_filial_pp.id_filial IS 'Identificador da filial';
-        COMMENT ON COLUMN vendas_filial_pp.sk_produto IS 'Produto vendido na filial';
-        COMMENT ON COLUMN vendas_filial_pp.volume_venda IS 'Quantidade vendida';
-        COMMENT ON COLUMN vendas_filial_pp.periodo IS 'Período de referência da venda';
+        COMMENT ON COLUMN gold.vendas_filial_pp.id_filial IS 'Identificador da filial';
+        COMMENT ON COLUMN gold.vendas_filial_pp.sk_produto IS 'Produto vendido na filial';
+        COMMENT ON COLUMN gold.vendas_filial_pp.volume_venda IS 'Quantidade vendida';
+        COMMENT ON COLUMN gold.vendas_filial_pp.periodo IS 'Período de referência da venda';
         """
     ]
 

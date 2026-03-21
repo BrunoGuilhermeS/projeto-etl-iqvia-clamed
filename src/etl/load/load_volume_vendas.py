@@ -1,106 +1,85 @@
-from src.etl.db.connection import get_connection
 import pandas as pd
-import os
-import re
+from src.etl.db.connection import get_connection
 
-
-def load_volume_vendas():
-
-    #caminho do csv limpo
-    csv_path = os.path.join("data", "clean_datasets", "market_sales_12_2022.csv")
-
-    # Extrai o período do nome do arquivo (ex: 12_2022 → 2022-12-01)
-    match = re.search(r"(\d{2})_(\d{4})", csv_path)
-    if match:
-        mes = match.group(1)
-        ano = match.group(2)
-        periodo = f"{ano}-{mes}-01"
-    else:
-        periodo = "2022-12-01"
-
-    print(f"Período detectado automaticamente: {periodo}")
-
-    df = pd.read_csv(csv_path)
-
-    #coluna bandeiras
-    bandeiras_cols = ["PP_UN", "SO_CONC_UN", "SI_CONC_UN"]
-
-    #mapeia as bandeiras pelo id_bandeira
-    mapa_bandeiras = {
-        "PP_UN": 1,
-        "SO_CONC_UN": 2,
-        "SI_CONC_UN": 3
-    }
-
-    #converte wide to long
-    df_long = df.melt(
-        id_vars=["cod_regiao", "cod_ean"],
-        value_vars=bandeiras_cols,
-        var_name="bandeira",
-        value_name="volume_venda"
-    )
-
-    #remove zeros e NaN
-    df_long = df_long[df_long["volume_venda"].notna()]
-    df_long = df_long[df_long["volume_venda"] > 0]
-
-    #converte para tipos padrão
-    df_long["cod_regiao"] = df_long["cod_regiao"].astype(int)
-    df_long["cod_ean"] = df_long["cod_ean"].astype(int)
-    df_long["volume_venda"] = df_long["volume_venda"].astype(float)
-
-    #mapeia id_bandeira
-    df_long["id_bandeira"] = df_long["bandeira"].map(mapa_bandeiras)
+def load_volume_vendas(): # <-- Removido o argumento 'periodo'
+    print(f"🚀 Iniciando carga da Fato a partir da Silver (Período Automático)")
 
     try:
         conn = get_connection()
         cursor = conn.cursor()
 
-        #SQL para buscar sk_produto
-        sql_get_produto = """
-            SELECT sk_produto 
-            FROM gold.produtos 
-            WHERE cod_ean = %s
-            AND flag_ativo = TRUE
-            """
+        # 1. Busca os dados da camada Silver INCLUINDO a coluna periodo
+        query_silver = """
+            SELECT cod_regiao, cod_ean, si_conc_un, so_conc_un, pp_un, periodo 
+            FROM silver.market_sales_clean
+        """
+        cursor.execute(query_silver)
+        
+        columns = [desc[0] for desc in cursor.description]
+        df_silver = pd.DataFrame(cursor.fetchall(), columns=columns)
 
-        #SQL para inserir volume
-        sql_insert = """
-            INSERT INTO volume_vendas (id_regiao, id_bandeira, sk_produto, volume_venda, periodo)
-            VALUES (%s, %s, %s, %s, %s)
-            ON CONFLICT ON CONSTRAINT pk_volume_vendas 
-            DO UPDATE SET 
-                volume_venda = EXCLUDED.volume_venda;
+        if df_silver.empty:
+            print("⚠️ Camada Silver está vazia. Carga abortada.")
+            return
+
+        # 2. Mapeamento das bandeiras
+        mapa_bandeiras = {
+            "pp_un": 1,
+            "so_conc_un": 2,
+            "si_conc_un": 3
+        }
+
+        # 3. Wide to Long (Unpivot) - Mantemos o 'periodo' nos id_vars para não perdê-lo
+        df_long = df_silver.melt(
+            id_vars=["cod_regiao", "cod_ean", "periodo"], # <-- 'periodo' preservado aqui
+            value_vars=["pp_un", "so_conc_un", "si_conc_un"],
+            var_name="bandeira_col",
+            value_name="volume_venda"
+        )
+
+        # Filtra volumes zerados ou nulos
+        df_long = df_long[df_long["volume_venda"] > 0].dropna(subset=["volume_venda"])
+
+        # 4. SQLs para busca de SK e Inserção
+        sql_get_sk = """
+            SELECT sk_produto FROM gold.produtos 
+            WHERE id_produto_original = %s AND flag_ativo = TRUE
         """
 
+        # IMPORTANTE: Adicionado o campo 'periodo' no INSERT e no VALUES
+        sql_insert = """
+            INSERT INTO gold.volume_vendas (id_regiao, id_bandeira, sk_produto, volume_venda, periodo)
+            VALUES (%s, %s, %s, %s, %s)
+            ON CONFLICT ON CONSTRAINT pk_volume_vendas 
+            DO UPDATE SET volume_venda = EXCLUDED.volume_venda;
+        """
+
+        registros_inseridos = 0
+
         for _, row in df_long.iterrows():
+            # Busca a SK ativa para o EAN
+            cursor.execute(sql_get_sk, (int(row["cod_ean"]),))
+            res = cursor.fetchone()
 
-            #busca sk_produto
-            cursor.execute(sql_get_produto, (row["cod_ean"],))
-            result = cursor.fetchone()
-
-            if result is None:
-                print(f"[AVISO] Produto com EAN {row['cod_ean']} não encontrado. Pulando…")
-                continue
-
-            sk_produto = result[0]
-
-            #executa no banco
-            cursor.execute(sql_insert, (
-                row["cod_regiao"],
-                row["id_bandeira"],
-                sk_produto,
-                row["volume_venda"],
-                periodo
-            ))
+            if res:
+                sk_produto = res[0]
+                
+                # Executa a inserção usando o row["periodo"] que veio da Silver
+                cursor.execute(sql_insert, (
+                    int(row["cod_regiao"]),
+                    mapa_bandeiras[row["bandeira_col"]],
+                    sk_produto,
+                    float(row["volume_venda"]),
+                    row["periodo"] # <-- Extraído diretamente da linha do DataFrame
+                ))
+                registros_inseridos += 1
 
         conn.commit()
-        print("Volume de vendas carregado com sucesso!")
+        print(f"✅ Carga concluída! {registros_inseridos} registros processados automaticamente.")
 
     except Exception as e:
-        print("Erro ao inserir volume vendas:", e)
-
+        print(f"❌ Erro na carga da Fato: {e}")
+        if conn: conn.rollback()
     finally:
-        cursor.close()
-        conn.close()
-
+        if cursor: cursor.close()
+        if conn: conn.close()

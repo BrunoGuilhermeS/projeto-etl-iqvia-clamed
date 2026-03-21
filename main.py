@@ -34,7 +34,7 @@ def main():
 
     print("Carregando dados raw na Bronze...")
     load_filial_raw(BASE_DIR / "data/csv_raw/filial-brick_sample.csv")
-    load_market_sales_raw(BASE_DIR / "data/csv_raw/MS_12_2022_sample.csv")
+    load_market_sales_raw(BASE_DIR / "data/csv_raw/MS_01_2023_sample.csv")
 
     print("Processando camada Silver...")
     silver_market_sales_transform()
