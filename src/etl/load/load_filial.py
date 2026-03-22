@@ -2,15 +2,13 @@ import pandas as pd
 from src.etl.db.connection import get_connection
 
 def load_filial():
-    print("🚀 Carregando Dimensão Filial a partir da Silver...")
+    print("Carregando Dimensão Filial a partir da Silver...")
     
     conn = None
     try:
         conn = get_connection()
         cursor = conn.cursor()
 
-        # 1. Busca os dados usando os nomes reais das colunas na Silver (HINT do erro anterior)
-        # Usamos 'AS' para renomear na saída do SQL e bater com o que o loop espera
         query_silver = """
             SELECT 
                 codigo_filial AS id_filial, 
@@ -19,7 +17,6 @@ def load_filial():
         """
         cursor.execute(query_silver)
         
-        # Converte para DataFrame
         columns = [desc[0] for desc in cursor.description]
         df = pd.DataFrame(cursor.fetchall(), columns=columns)
 
@@ -27,7 +24,6 @@ def load_filial():
             print("⚠️ Camada Silver de filiais está vazia. Abortando carga.")
             return
 
-        # 2. SQL de Inserção na Gold (Tabela final 'filial')
         insert_sql = """
             INSERT INTO gold.filial (id_filial, nome_filial, id_regiao)
             VALUES (%s, %s, %s)
@@ -37,15 +33,15 @@ def load_filial():
         for _, row in df.iterrows():
             cursor.execute(insert_sql, (
                 int(row["id_filial"]),
-                "Filial " + str(row["id_filial"]), # Nome genérico ou "Desconhecido"
+                "Filial " + str(row["id_filial"]),
                 int(row["id_regiao"])
             ))
 
         conn.commit()
-        print("✅ Filiais carregadas com sucesso na Gold!")
+        print("Filiais carregadas com sucesso na Gold!")
 
     except Exception as e:
-        print(f"❌ Erro ao inserir filiais: {e}")
+        print(f"Erro ao inserir filiais: {e}")
         if conn: conn.rollback()
     finally:
         if conn:

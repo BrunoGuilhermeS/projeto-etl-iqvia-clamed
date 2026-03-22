@@ -34,10 +34,10 @@ def load_filial_raw(input_path):
 
 
 def load_market_sales_raw(input_path):
-    # 1. Extrair o nome do arquivo
+    # Extrair o nome do arquivo
     file_name = os.path.basename(input_path)
     
-    # 2. Capturar mês e ano (Ex: MS_01_2023_sample.csv)
+    # Capturar mês e ano
     match = re.search(r"(\d{2})_(\d{4})", file_name)
 
     if match:
@@ -48,9 +48,9 @@ def load_market_sales_raw(input_path):
     else:
         # Se não encontrar a data, você pode definir um valor padrão ou interromper
         periodo_extraido = None 
-        print("⚠️ Aviso: Período não encontrado no nome do arquivo.")
+        print("Aviso: Período não encontrado no nome do arquivo.")
 
-    print(f"🚀 Extraindo dados para o período formatado: {periodo_extraido}")
+    print(f"Extraindo dados para o período formatado: {periodo_extraido}")
 
     conn = get_connection()
     cur = conn.cursor()
@@ -69,8 +69,7 @@ def load_market_sales_raw(input_path):
             "Tipo Informacao SO Bandeira PRECO POPULAR Unidade": "pp_un"
         })
 
-        # 3. Inserir os dados
-        # Certifique-se que o TRUNCATE ocorra se você quiser apenas o mês atual na Bronze
+        # Inserir os dados
         cur.execute("TRUNCATE TABLE bronze.market_sales_raw")
 
         insert_sql = """
@@ -88,7 +87,7 @@ def load_market_sales_raw(input_path):
                 row["si_conc_un"],
                 row["so_conc_un"],
                 row["pp_un"],
-                periodo_extraido  # Agora vai como '2023-01-01'
+                periodo_extraido
             ))
 
         conn.commit()
