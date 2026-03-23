@@ -91,11 +91,11 @@ def load_market_sales_raw(input_path):
             ))
 
         conn.commit()
-        print(f"✅ Market sales ({periodo_extraido}) carregado na camada Bronze")
+        print(f"Market sales ({periodo_extraido}) carregado na camada Bronze")
 
     except Exception as e:
         if conn: conn.rollback()
-        print(f"❌ Erro ao carregar Bronze: {e}")
+        print(f"Erro ao carregar Bronze: {e}")
     finally:
         if cur: cur.close()
         if conn: conn.close()
