@@ -56,5 +56,5 @@ def main():
     print("Pipeline executado com sucesso.")
 
 
-if __name__ == "__pipeline__":
+if __name__ == "__main__":
     main()
