@@ -1,7 +1,6 @@
 import psycopg2 as pg
 import pandas as pd
 from src.etl.db.connection import get_connection
-import os
 
 def load_gold_produtos():
     conn = get_connection()
