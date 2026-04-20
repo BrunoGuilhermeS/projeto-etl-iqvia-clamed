@@ -33,8 +33,20 @@ def get_volume_com_dimensoes():
             v.volume_venda,
             v.periodo
         FROM gold.volume_vendas v
-        JOIN regiao r    ON r.id_regiao = v.id_regiao
-        JOIN bandeira b  ON b.id_bandeira = v.id_bandeira
-        JOIN produtos p  ON p.id_produto = v.id_produto;
-        """
-    return select_df(sql)
+        JOIN gold.regiao r    ON r.id_regiao = v.id_regiao
+        JOIN gold.bandeira b  ON b.id_bandeira = v.id_bandeira
+        JOIN gold.produtos p  ON p.sk_produto = v.sk_produto;
+    """
+    
+    conn = get_connection()
+    try:
+        df = pd.read_sql(sql, conn)
+        return df
+    except Exception as e:
+        # ISSO VAI MOSTRAR O ERRO REAL NO TERMINAL
+        print(f"\n--- ERRO DO BANCO DE DADOS ---")
+        print(e)
+        print(f"------------------------------\n")
+        raise e # Relança o erro para sabermos que falhou
+    finally:
+        conn.close()

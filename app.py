@@ -3,41 +3,19 @@ from src.queries.queries import get_volume_com_dimensoes
 
 st.set_page_config(page_title="Dashboard Clamed", layout="wide")
 
-# Decorador de cache para não rodar a consulta toda hora
-@st.cache_data(ttl=3600) # Cache de 1 hora
-def get_volume_com_dimensoes():
-    try:
-        # Chamada da sua função existente
-        df = get_volume_com_dimensoes() 
-        return df
-    except Exception as e:
-        st.error(f"Erro ao carregar dados do banco: {e}")
-        return None
+@st.cache_data(ttl=3600)
+def carregar_dados():
+    # Chama a função que agora não precisa de argumentos
+    return get_volume_com_dimensoes()
 
-# --- Layout do App ---
 st.title("📊 Volume e Dimensões")
 
-# Spinner para mostrar que está carregando
 with st.spinner('Buscando dados no banco...'):
-    df = get_volume_com_dimensoes()
+    df = carregar_dados()
 
-# Verificação de segurança
 if df is not None and not df.empty:
-    st.success("Dados carregados com sucesso!")
-    
-    # Exemplo de uso no Streamlit
-    st.dataframe(df.head()) # Mostra uma tabela interativa
-    
-    # Exemplo de gráfico baseado no dataframe
-    st.line_chart(df) 
+    st.success(f"Sucesso! Foram carregadas {len(df)} linhas.")
+    st.dataframe(df)
+    st.line_chart(df) # Cuidado: se o df for muito grande, o gráfico pode ficar pesado
 else:
-    st.warning("Não há dados disponíveis.")
-
-@st.cache_data(ttl=3600)
-def get_volume_com_dimensoes(data_inicial, data_final):
-    return get_volume_com_dimensoes(data_inicial, data_final)
-
-# No Streamlit:
-inicio = st.date_input("Início")
-fim = st.date_input("Fim")
-df = get_volume_com_dimensoes(inicio, fim)
+    st.warning("Não há dados disponíveis ou ocorreu um erro na conexão.")
