@@ -5,5 +5,6 @@ def get_connection():
         host="localhost",
         database="ClamedMarketAnalysis",
         user="postgres",
-        password="alinda"
+        password="alinda",
+        connect_timeout=10
     )
