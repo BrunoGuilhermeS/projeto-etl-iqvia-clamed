@@ -28,8 +28,8 @@ def get_volume_com_dimensoes():
     sql = """
         SELECT
             v.periodo,
-            r.nome_regiao as categoria,
-            b.nome_bandeira as brick,
+            r.nome_regiao as regiao,
+            b.nome_bandeira as bandeira,
             b.tipo_bandeira,
             v.volume_venda,
             p.valor_produto

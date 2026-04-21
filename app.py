@@ -9,13 +9,13 @@ st.set_page_config(page_title="Dashboard Executivo Clamed", layout="wide")
 @st.cache_data(ttl=60)
 def carregar_dados():
     df = fetch_data()
+    
+    # Garantimos que o período seja datetime e criamos a string de mês
     df['periodo'] = pd.to_datetime(df['periodo'])
     df['mes_str'] = df['periodo'].dt.strftime('%Y-%m')
     
-    # Criamos colunas auxiliares para facilitar os cálculos
-    # Vendas PP (Clamed)
+    # Cálculos de colunas de apoio (Vendas PP vs Concorrência)
     df['vendas_pp'] = df.apply(lambda x: x['volume_venda'] if x['tipo_bandeira'] == 'PP' else 0, axis=1)
-    # Vendas Concorrência (Tudo que não é PP)
     df['vendas_concorrência'] = df.apply(lambda x: x['volume_venda'] if x['tipo_bandeira'] != 'PP' else 0, axis=1)
     
     return df
@@ -25,23 +25,22 @@ df = carregar_dados()
 # --- SIDEBAR: Filtros Dinâmicos ---
 st.sidebar.header("⚙️ Filtros do Dashboard")
 
-# Filtro por Categoria (Nota: Se sua query usar 'categoria' para Região, 
-# você pode precisar adicionar a categoria real do produto no SQL depois)
-lista_cat = sorted(df['categoria'].unique().tolist())
-filtro_cat = st.sidebar.multiselect("Categoria de Produto/Região:", lista_cat, default=lista_cat)
+# Filtro por Região (Atualizado conforme sua nova query)
+lista_regiao = sorted(df['regiao'].unique().tolist())
+filtro_regiao = st.sidebar.multiselect("Selecione a Região:", lista_regiao, default=lista_regiao)
 
-# Filtro por Brick (Bandeira)
-lista_brick = sorted(df['brick'].unique().tolist())
-filtro_brick = st.sidebar.multiselect("Selecione o Brick:", lista_brick, default=lista_brick)
+# Filtro por Bandeira
+lista_bandeira = sorted(df['bandeira'].unique().tolist())
+filtro_bandeira = st.sidebar.multiselect("Selecione a Bandeira:", lista_bandeira, default=lista_bandeira)
 
 # Filtro por Mês
 lista_mes = sorted(df['mes_str'].unique().tolist(), reverse=True)
-filtro_mes = st.sidebar.multiselect("Período (Mês):", lista_mes, default=lista_mes[:6]) # Padrão últimos 6 meses
+filtro_mes = st.sidebar.multiselect("Período (Mês):", lista_mes, default=lista_mes[:6])
 
 # Aplicação dos Filtros
 df_filtrado = df[
-    (df['categoria'].isin(filtro_cat)) &
-    (df['brick'].isin(filtro_brick)) &
+    (df['regiao'].isin(filtro_regiao)) &
+    (df['bandeira'].isin(filtro_bandeira)) &
     (df['mes_str'].isin(filtro_mes))
 ]
 
@@ -58,47 +57,45 @@ else:
     vol_pp = df_filtrado['vendas_pp'].sum()
     share_pp = (vol_pp / vol_total * 100) if vol_total > 0 else 0
     
-    # 2. Gap de Preço Médio
+    # 2. Gap de Volume Médio
     vol_medio_pp = df_filtrado[df_filtrado['tipo_bandeira'] == 'PP']['volume_venda'].mean()
     vol_medio_conv = df_filtrado[df_filtrado['tipo_bandeira'] != 'PP']['volume_venda'].mean()
-    
-    # Ajuste o cálculo abaixo conforme sua necessidade de negócio
-    gap_vol = vol_medio_pp - vol_medio_conv
-    # ---------------------------------------------------------
+    gap_vol = (vol_medio_pp or 0) - (vol_medio_conv or 0)
 
-    # 3. Brick Potencial
-    brick_potencial = df_filtrado.groupby('brick')['volume_venda'].sum().idxmax()
+    # 3. Filial Potencial (Busca a filial com maior volume dentro do filtro)
+    # Nota: Certifique-se de que 'id_filial' ou similar esteja no seu SELECT da query
+    coluna_regiao = 'regiao' # Ajuste para o nome exato que colocou no SQL
+    if coluna_regiao in df_filtrado.columns:
+        regiao_potencial = df_filtrado.groupby(coluna_regiao)['volume_venda'].sum().idxmax()
+    else:
+        regiao_potencial = "Coluna não encontrada no SQL"
 
-    # Exibição (Aqui você usa as variáveis calculadas acima)
+    # Exibição dos KPIs
     c1, c2, c3 = st.columns(3)
     c1.metric("Market Share (PP)", f"{share_pp:.1f}%")
-    c2.metric("Gap de Volume Médio", f"{gap_vol:.2f}") # O valor muda aqui
-    c3.metric("Brick Potencial", brick_potencial)
+    c2.metric("Gap de Volume Médio", f"{gap_vol:.2f}")
+    c3.metric("Filial Potencial", regiao_potencial)
 
     st.markdown("---")
 
-    # --- VISÕES OBRIGATÓRIAS ---
-    col_v1, col_v2 = st.columns([2, 3]) # Diferentes larguras para melhor estética
+    # --- VISÕES GRÁFICAS ---
+    col_v1, col_v2 = st.columns([2, 3])
 
     with col_v1:
-        st.subheader("📍 Volume de Vendas por Brick")
-        # Treemap: Tamanho do quadrado é o volume total
-        df_tree = df_filtrado.groupby('brick')['volume_venda'].sum().reset_index()
-        fig_tree = px.treemap(df_tree, path=['brick'], values='volume_venda',
-                             color='volume_venda', color_continuous_scale='RdBu')
+        st.subheader("📍 Performance por Bandeira")
+        df_tree = df_filtrado.groupby('bandeira')['volume_venda'].sum().reset_index()
+        fig_tree = px.treemap(df_tree, path=['bandeira'], values='volume_venda',
+                               color='volume_venda', color_continuous_scale='RdBu')
         st.plotly_chart(fig_tree, use_container_width=True)
 
     with col_v2:
-        st.subheader("📈 Evolução: PP vs Concorrência")
-        # Agrupamos por mês para ver a linha do tempo
+        st.subheader("📈 Evolução Mensal: PP vs Concorrência")
         df_evolucao = df_filtrado.groupby('mes_str')[['vendas_pp', 'vendas_concorrência']].sum().reset_index()
-        # Ordenar meses cronologicamente
         df_evolucao = df_evolucao.sort_values('mes_str')
         
         fig_line = px.line(df_evolucao, x='mes_str', 
                            y=['vendas_pp', 'vendas_concorrência'],
-                           labels={'value': 'Volume de Vendas', 'mes_str': 'Mês'},
+                           labels={'value': 'Volume', 'mes_str': 'Mês', 'variable': 'Grupo'},
                            markers=True,
                            color_discrete_map={'vendas_pp': '#00CC96', 'vendas_concorrência': '#EF553B'})
-        
         st.plotly_chart(fig_line, use_container_width=True)
