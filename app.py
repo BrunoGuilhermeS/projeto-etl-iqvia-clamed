@@ -45,7 +45,7 @@ df_filtrado = df[
 ]
 
 # --- PAINEL PRINCIPAL ---
-st.title("📊 Dashboard de Performance Clamed")
+#st.title("📊 Dashboard de Performance Clamed")
 
 if df_filtrado.empty:
     st.warning("Nenhum dado encontrado para os filtros selecionados.")
@@ -70,13 +70,53 @@ else:
     else:
         regiao_potencial = "Coluna não encontrada no SQL"
 
+    cor_barra_verde = "#2D724F"
+    cor_texto_branco = "#FFFFFF"
+
+    st.markdown(f"""
+    <style>
+        /* Estilo para a barra de título customizada */
+        .title-bar {{
+            background-color: {cor_barra_verde};
+            color: {cor_texto_branco};
+            padding: 1.5rem;
+            margin-top: -3.5rem; /* Puxa para cima para ocupar o topo */
+            margin-left: -1rem;  /* Estica para o canto esquerdo */
+            margin-right: -1rem; /* Estica para o canto direito */
+            border-radius: 0.5rem; /* Bordas levemente arredondadas (opcional) */
+            box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.2); /* Sombra suave (opcional) */
+            text-align: left; /* Alinhamento do texto */
+        }}
+        
+        /* Ajuste do tamanho da fonte e margens do título interno */
+        .title-bar h1 {{
+            font-size: 2.2rem;
+            margin: 0;
+            padding: 0;
+            display: inline; /* Mantém o ícone e texto na mesma linha */
+            color: {cor_texto_branco} !important; /* Força cor branca */
+        }}
+        
+        /* Ajuste do ícone */
+        .title-bar span {{
+            font-size: 2rem;
+            margin-right: 0.7rem;
+            vertical-align: middle;
+        }}
+    </style>
+    
+    <div class="title-bar">
+        <span>📊</span><h1>Dashboard Executivo Clamed</h1>
+    </div>
+    <br>
+    """,
+    unsafe_allow_html=True)
+    
     # Exibição dos KPIs
     c1, c2, c3 = st.columns(3)
     c1.metric("Market Share (PP)", f"{share_pp:.1f}%")
     c2.metric("Gap de Volume Médio", f"{gap_vol:.2f}")
     c3.metric("Filial Potencial", regiao_potencial)
-
-    st.markdown("---")
 
     # --- VISÕES GRÁFICAS ---
     col_v1, col_v2 = st.columns([2, 3])
