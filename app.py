@@ -112,11 +112,31 @@ else:
     """,
     unsafe_allow_html=True)
     
-    # Exibição dos KPIs
-    c1, c2, c3 = st.columns(3)
-    c1.metric("Market Share (PP)", f"{share_pp:.1f}%")
-    c2.metric("Gap de Volume Médio", f"{gap_vol:.2f}")
-    c3.metric("Filial Potencial", regiao_potencial)
+    st.markdown("""
+    <style>
+    [data-testid="stMetric"] {
+        background-color: #e6fffa; /* Verde bem clarinho */
+        padding: 15px;
+        border-radius: 10px;
+        border: 1px solid #b2f5ea;
+        box-shadow: 2px 2px 5px rgba(0,0,0,0.05);
+    }
+    </style>
+    """, unsafe_allow_html=True)
+
+# --- SEU CÓDIGO DE EXIBIÇÃO ---
+st.subheader("Indicadores de Desempenho")
+
+c1, c2, c3 = st.columns(3)
+
+with c1:
+    st.metric("Market Share (PP)", "15.4%")
+
+with c2:
+    st.metric("Gap de Volume Médio", "1.25")
+
+with c3:
+    st.metric("Filial Potencial", "São Paulo")
 
     # --- VISÕES GRÁFICAS ---
     col_v1, col_v2 = st.columns([2, 3])
