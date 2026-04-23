@@ -25,7 +25,7 @@ df = carregar_dados()
 # --- SIDEBAR: Filtros Dinâmicos ---
 st.sidebar.header("⚙️ Filtros do Dashboard")
 
-# Filtro por Região (Atualizado conforme sua nova query)
+# Filtro por Região
 lista_regiao = sorted(df['regiao'].unique().tolist())
 filtro_regiao = st.sidebar.multiselect("Selecione a Região:", lista_regiao, default=lista_regiao)
 
@@ -45,7 +45,6 @@ df_filtrado = df[
 ]
 
 # --- PAINEL PRINCIPAL ---
-#st.title("📊 Dashboard de Performance Clamed")
 
 if df_filtrado.empty:
     st.warning("Nenhum dado encontrado para os filtros selecionados.")
@@ -62,14 +61,14 @@ else:
     vol_medio_conv = df_filtrado[df_filtrado['tipo_bandeira'] != 'PP']['volume_venda'].mean()
     gap_vol = (vol_medio_pp or 0) - (vol_medio_conv or 0)
 
-    # 3. Filial Potencial (Busca a filial com maior volume dentro do filtro)
-    # Nota: Certifique-se de que 'id_filial' ou similar esteja no seu SELECT da query
-    coluna_regiao = 'regiao' # Ajuste para o nome exato que colocou no SQL
+    # 3. Filial Potencial
+    coluna_regiao = 'regiao'
     if coluna_regiao in df_filtrado.columns:
         regiao_potencial = df_filtrado.groupby(coluna_regiao)['volume_venda'].sum().idxmax()
     else:
-        regiao_potencial = "Coluna não encontrada no SQL"
+        regiao_potencial = "N/A"
 
+    # --- ESTILIZAÇÃO CSS ---
     cor_barra_verde = "#2D724F"
     cor_texto_branco = "#FFFFFF"
 
@@ -80,28 +79,35 @@ else:
             background-color: {cor_barra_verde};
             color: {cor_texto_branco};
             padding: 1.5rem;
-            margin-top: -3.5rem; /* Puxa para cima para ocupar o topo */
-            margin-left: -1rem;  /* Estica para o canto esquerdo */
-            margin-right: -1rem; /* Estica para o canto direito */
-            border-radius: 0.5rem; /* Bordas levemente arredondadas (opcional) */
-            box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.2); /* Sombra suave (opcional) */
-            text-align: left; /* Alinhamento do texto */
+            margin-top: -3.5rem;
+            margin-left: -1rem; 
+            margin-right: -1rem;
+            border-radius: 0.5rem;
+            box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.2);
+            text-align: left;
         }}
         
-        /* Ajuste do tamanho da fonte e margens do título interno */
         .title-bar h1 {{
             font-size: 2.2rem;
             margin: 0;
             padding: 0;
-            display: inline; /* Mantém o ícone e texto na mesma linha */
-            color: {cor_texto_branco} !important; /* Força cor branca */
+            display: inline;
+            color: {cor_texto_branco} !important;
         }}
         
-        /* Ajuste do ícone */
         .title-bar span {{
             font-size: 2rem;
             margin-right: 0.7rem;
             vertical-align: middle;
+        }}
+        
+        /* Estilo para as caixinhas de métricas verdes */
+        [data-testid="stMetric"] {{
+            background-color: #e6fffa;
+            padding: 15px;
+            border-radius: 10px;
+            border: 1px solid #b2f5ea;
+            box-shadow: 2px 2px 5px rgba(0,0,0,0.05);
         }}
     </style>
     
@@ -109,34 +115,24 @@ else:
         <span>📊</span><h1>Dashboard Executivo Clamed</h1>
     </div>
     <br>
-    """,
-    unsafe_allow_html=True)
-    
-    st.markdown("""
-    <style>
-    [data-testid="stMetric"] {
-        background-color: #e6fffa; /* Verde bem clarinho */
-        padding: 15px;
-        border-radius: 10px;
-        border: 1px solid #b2f5ea;
-        box-shadow: 2px 2px 5px rgba(0,0,0,0.05);
-    }
-    </style>
     """, unsafe_allow_html=True)
+    
+    # --- EXIBIÇÃO DOS KPIs ---
+    st.subheader("Indicadores de Desempenho")
+    
+    c1, c2, c3 = st.columns(3)
 
-# --- SEU CÓDIGO DE EXIBIÇÃO ---
-st.subheader("Indicadores de Desempenho")
+    # Usei as variáveis matemáticas para ficar dinâmico de verdade
+    with c1:
+        st.metric("Market Share (PP)", f"{share_pp:.1f}%")
 
-c1, c2, c3 = st.columns(3)
+    with c2:
+        st.metric("Gap de Volume Médio", f"{gap_vol:.2f}")
 
-with c1:
-    st.metric("Market Share (PP)", "15.4%")
+    with c3:
+        st.metric("Filial Potencial", regiao_potencial)
 
-with c2:
-    st.metric("Gap de Volume Médio", "1.25")
-
-with c3:
-    st.metric("Filial Potencial", "São Paulo")
+    st.divider() # Uma linha sutil para separar as métricas dos gráficos
 
     # --- VISÕES GRÁFICAS ---
     col_v1, col_v2 = st.columns([2, 3])
@@ -153,9 +149,12 @@ with c3:
         df_evolucao = df_filtrado.groupby('mes_str')[['vendas_pp', 'vendas_concorrência']].sum().reset_index()
         df_evolucao = df_evolucao.sort_values('mes_str')
         
+        # Aqui o fig_line é criado ANTES de ser chamado
         fig_line = px.line(df_evolucao, x='mes_str', 
                            y=['vendas_pp', 'vendas_concorrência'],
                            labels={'value': 'Volume', 'mes_str': 'Mês', 'variable': 'Grupo'},
                            markers=True,
                            color_discrete_map={'vendas_pp': '#00CC96', 'vendas_concorrência': '#EF553B'})
+        
+        # Agora o Streamlit sabe quem é o fig_line para desenhar
         st.plotly_chart(fig_line, use_container_width=True)
