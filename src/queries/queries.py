@@ -32,8 +32,10 @@ def get_volume_com_dimensoes():
             b.nome_bandeira as bandeira,
             b.tipo_bandeira,
             v.volume_venda,
-            p.valor_produto
-
+            p.valor_produto,
+            p.nome_produto,
+            -- Aqui pegamos o código que você mostrou nos dados (ex: '734398')
+            p.sk_produto as ean_produto 
         FROM gold.volume_vendas v
             JOIN gold.produtos p ON v.sk_produto = p.sk_produto
             JOIN gold.bandeira b ON v.id_bandeira = b.id_bandeira
@@ -42,9 +44,6 @@ def get_volume_com_dimensoes():
 
     conn = get_connection()
     try:
-        df = pd.read_sql(sql, conn)
-        df['periodo'] = pd.to_datetime(df['periodo'])
-        return df
-
+        return pd.read_sql(sql, conn)
     finally:
         conn.close()
