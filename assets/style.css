@@ -1,0 +1,35 @@
+/* Barra de Título */
+.title-bar {
+    background-color: #2D724F;
+    color: #FFFFFF;
+    padding: 1.5rem;
+    margin-top: -3.5rem;
+    margin-left: -1rem; 
+    margin-right: -1rem;
+    border-radius: 0.5rem;
+    box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.2);
+}
+
+.title-bar h1 { 
+    font-size: 2.2rem; 
+    color: white !important; 
+    display: inline; 
+}
+
+/* Estilo das Métricas (KPIs) */
+[data-testid="stMetric"] {
+    background-color: #e6fffa;
+    padding: 15px;
+    border-radius: 10px;
+    border: 1px solid #b2f5ea;
+}
+
+/* Tags dos Filtros Laterais em VERDE */
+span[data-baseweb="tag"] {
+    background-color: #2D724F !important;
+    color: white !important;
+}
+
+span[data-baseweb="tag"] svg { 
+    fill: white !important; 
+}
