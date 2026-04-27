@@ -1,16 +1,18 @@
 import pandas as pd
+import logging
 from src.etl.db.connection import get_connection
 
+logger = logging.getLogger("ETL_Gold_Regiao")
+
 def load_regiao():
-    print("Carregando Dimensão Região a partir da Silver...")
+    logger.info("Iniciando a carga da Dimensão Região a partir da camada Silver...")
     
     conn = None
+    cursor = None
     try:
         conn = get_connection()
         cursor = conn.cursor()
 
-        # --- A CULPADA ESTAVA AQUI ---
-        # Trocamos a concatenação boba pelo nome real da coluna: "regiao"
         query = """
             SELECT DISTINCT 
                 codigo_regiao AS id_regiao, 
@@ -19,16 +21,19 @@ def load_regiao():
             WHERE codigo_regiao IS NOT NULL
         """
         
+        logger.info("Buscando regiões distintas na tabela silver.filial_clean...")
         cursor.execute(query)
         columns = [desc[0] for desc in cursor.description]
         df = pd.DataFrame(cursor.fetchall(), columns=columns)
 
         if df.empty:
-            print("Tabela Silver de filiais está vazia.")
+            logger.warning("A tabela Silver de filiais está vazia. Nenhuma região para carregar.")
             return
 
-        # Dica: É bom limpar a tabela antes de carregar a dimensão novamente
-        # caso você esteja testando várias vezes
+        logger.info(f"{len(df)} regiões encontradas. Preparando banco de dados...")
+
+        # Limpeza da tabela Gold (CASCADE garante que as chaves estrangeiras não travem o processo)
+        logger.info("Executando TRUNCATE na tabela gold.regiao (CASCADE)...")
         cursor.execute("TRUNCATE TABLE gold.regiao CASCADE;")
 
         sql_insert = """
@@ -37,6 +42,7 @@ def load_regiao():
             ON CONFLICT (id_regiao) DO NOTHING;
         """
 
+        logger.info("Inserindo regiões na camada Gold...")
         for _, row in df.iterrows():
             cursor.execute(sql_insert, (
                 row["id_regiao"],
@@ -44,12 +50,18 @@ def load_regiao():
             ))
 
         conn.commit()
-        print("Dimensão Região carregada com sucesso!")
+        logger.info("Sucesso! Dimensão Região carregada e atualizada na Gold.")
 
     except Exception as e:
-        print(f"Erro ao carregar região: {e}")
-        if conn: conn.rollback()
+        logger.error(f"Erro crítico ao carregar região na Gold: {e}", exc_info=True)
+        if conn: 
+            conn.rollback()
     finally:
-        if conn:
+        if cursor:
             cursor.close()
+        if conn:
             conn.close()
+        logger.info("Conexão com o banco encerrada.")
+
+if __name__ == "__main__":
+    load_regiao()

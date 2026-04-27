@@ -1,14 +1,18 @@
+import logging
 from src.etl.db.connection import get_connection
 
+logger = logging.getLogger("ETL_Gold_Bandeira")
+
 def load_bandeira():
-    print("Carregando Dimensão Bandeira...")
+    logger.info("Iniciando o carregamento da dimensão Bandeira...")
     
     conn = None
+    cursor = None
+    
     try:
         conn = get_connection()
         cursor = conn.cursor()
 
-        # ON CONFLICT para que o pipeline possa rodar várias vezes sem erro
         insert_sql = """
             INSERT INTO gold.bandeira (id_bandeira, nome_bandeira, tipo_bandeira)
             VALUES 
@@ -22,16 +26,19 @@ def load_bandeira():
 
         cursor.execute(insert_sql)
         conn.commit()
-        print("Bandeiras carregadas/atualizadas com sucesso!")
+        logger.info("Dimensão Bandeira carregada/atualizada com sucesso!")
         
     except Exception as e:
-        print(f"Erro ao inserir bandeira: {e}")
-        if conn: conn.rollback()
+        logger.error(f"Erro crítico ao carregar dimensão bandeira: {e}", exc_info=True)
+        if conn: 
+            conn.rollback()
 
     finally:
-        if conn:
+        if cursor:
             cursor.close()
+        if conn:
             conn.close()
+        logger.info("Conexão com o banco encerrada.")
 
 if __name__ == "__main__":
     load_bandeira()

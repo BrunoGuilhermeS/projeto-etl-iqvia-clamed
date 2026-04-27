@@ -1,10 +1,14 @@
 import pandas as pd
+import logging
 from src.etl.db.connection import get_connection
 
+logger = logging.getLogger("ETL_Gold_Filial")
+
 def load_filial():
-    print("Carregando Dimensão Filial a partir da Silver...")
+    logger.info("Iniciando a carga da Dimensão Filial a partir da camada Silver...")
     
     conn = None
+    cursor = None
     try:
         conn = get_connection()
         cursor = conn.cursor()
@@ -21,8 +25,10 @@ def load_filial():
         df = pd.DataFrame(cursor.fetchall(), columns=columns)
 
         if df.empty:
-            print("⚠️ Camada Silver de filiais está vazia. Abortando carga.")
+            logger.warning("A camada Silver de filiais está vazia. Abortando processo de carga na Gold.")
             return
+
+        logger.info(f"{len(df)} registros de filiais recuperados da Silver. Iniciando inserção...")
 
         insert_sql = """
             INSERT INTO gold.filial (id_filial, nome_filial, id_regiao)
@@ -38,15 +44,18 @@ def load_filial():
             ))
 
         conn.commit()
-        print("Filiais carregadas com sucesso na Gold!")
+        logger.info(f"Carga finalizada com sucesso! Filiais inseridas/verificadas na Gold.")
 
     except Exception as e:
-        print(f"Erro ao inserir filiais: {e}")
-        if conn: conn.rollback()
+        logger.error(f"Erro crítico durante a carga da dimensão filial: {e}", exc_info=True)
+        if conn: 
+            conn.rollback()
     finally:
-        if conn:
+        if cursor:
             cursor.close()
+        if conn:
             conn.close()
+        logger.info("Conexão com o banco encerrada para esta tarefa.")
 
 if __name__ == "__main__":
     load_filial()

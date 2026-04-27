@@ -4,10 +4,8 @@ import plotly.express as px
 from pathlib import Path
 from src.queries.queries import get_volume_com_dimensoes as fetch_data
 
-# 1. Configurações da Página
 st.set_page_config(page_title="Dashboard Executivo Clamed", layout="wide")
 
-# 2. Função para injetar o CSS externo
 def carregar_css():
     css_path = Path(__file__).parent / "assets" / "style.css"
     try:
@@ -22,20 +20,14 @@ carregar_css()
 def carregar_dados():
     df = fetch_data()
     
-    # 1. Datas e Período
     df['periodo'] = pd.to_datetime(df['periodo'])
     df['mes_str'] = df['periodo'].dt.strftime('%Y-%m')
     
-    # 2. Criação do Label: Nome (EAN)
-    # Tratamos nulos para evitar que apareça 'nan' na tela
     nome_limpo = df['nome_produto'].fillna("PRODUTO SEM NOME").astype(str)
     ean_limpo = df['ean_produto'].fillna("S/ EAN").astype(str)
 
-    # Resultado esperado: "PRODUTO EXEMPLO (789123456789)"
     df['produto_label'] = nome_limpo + " (" + ean_limpo + ")"
 
-    # 3. Cálculos de Apoio (PP vs Concorrência)
-    # Usamos .str.upper() para garantir que 'PP' ou 'pp' funcionem
     df['vendas_pp'] = df.apply(
         lambda x: x['volume_venda'] if str(x['tipo_bandeira']).upper() == 'PP' else 0, 
         axis=1
@@ -49,7 +41,7 @@ def carregar_dados():
 
 df = carregar_dados()
 
-# --- SIDEBAR: Filtros Dinâmicos ---
+# --- SIDEBAR ---
 st.sidebar.header("⚙️ Filtros do Dashboard")
 
 lista_regiao = sorted(df['regiao'].unique().tolist())
@@ -76,7 +68,6 @@ if filtro_produto:
 
 df_filtrado = df[mascara]
 
-# Renderizando o Título (o estilo virá do style.css)
 st.markdown("""
 <div class="title-bar">
     <h1>Dashboard Executivo Clamed</h1>
@@ -95,7 +86,6 @@ else:
     vol_pp = df_filtrado['vendas_pp'].sum()
     share_pp = (vol_pp / vol_total * 100) if vol_total > 0 else 0
     
-    # Tratamento para limpar o texto da bandeira e evitar erros de case-sensitive
     df_filtrado['tipo_bandeira_clean'] = df_filtrado['tipo_bandeira'].astype(str).str.upper().str.strip()
     
     vol_pp_serie = df_filtrado[df_filtrado['tipo_bandeira_clean'] == 'PP']['volume_venda']
@@ -104,7 +94,6 @@ else:
     vol_medio_pp = vol_pp_serie.median() if not vol_pp_serie.empty else 0
     vol_medio_conv = vol_conv_serie.median() if not vol_conv_serie.empty else 0
     
-    # Cálculo do Gap Percentual
     if vol_medio_conv > 0:
         gap_percentual = ((vol_medio_pp - vol_medio_conv) / vol_medio_conv) * 100
         texto_gap = f"{gap_percentual:+.1f}%"
@@ -119,7 +108,7 @@ else:
 
     st.divider()
 
-    # --- GRID DE GRÁFICOS (LINHA 1) ---
+    # --- GRID DE GRÁFICOS ---
     col_v1, col_v2 = st.columns([2, 3])
 
     with col_v1:
@@ -136,7 +125,7 @@ else:
                            markers=True, color_discrete_map={'vendas_pp': '#2D724F', 'vendas_concorrência': '#EF553B'})
         st.plotly_chart(fig_line, use_container_width=True)
 
-    # --- GRID DE GRÁFICOS (LINHA 2) ---
+    # --- GRID DE GRÁFICOS ---
     col_v3, col_v4 = st.columns(2)
 
     with col_v3:
@@ -158,27 +147,22 @@ else:
 with col_v4:
         st.subheader("📦 Volume por Produto (Top 10)")
         
-        # 1. Encontrar os 10 produtos com maior volume TOTAL
         top_10_nomes = df_filtrado.groupby('produto_label')['volume_venda'].sum().nlargest(10).index
         
-        # 2. Filtrar os dados apenas para esses 10 produtos
         df_top_10 = df_filtrado[df_filtrado['produto_label'].isin(top_10_nomes)]
-        
-        # 3. Agrupar por produto e tipo de bandeira
+              
         df_top_grouped = df_top_10.groupby(['produto_label', 'tipo_bandeira_clean'])['volume_venda'].sum().reset_index()
         
-        # 4. Criar a ordem do eixo Y (para o maior ficar no topo)
         ordem_y = df_top_10.groupby('produto_label')['volume_venda'].sum().sort_values(ascending=True).index
         
-        # 5. Criar o gráfico com divisão de cores
         fig_top = px.bar(
             df_top_grouped, 
             x='volume_venda', 
             y='produto_label', 
-            color='tipo_bandeira_clean', # Aqui ele divide as cores!
+            color='tipo_bandeira_clean',
             orientation='h',
-            category_orders={'produto_label': ordem_y}, # Garante a ordenação correta das barras
-            color_discrete_map={'PP': '#2D724F', 'CONCORRENTE': '#EF553B'}, # Verde para PP, Vermelho/Laranja para Concorrente
+            category_orders={'produto_label': ordem_y}, 
+            color_discrete_map={'PP': '#2D724F', 'CONCORRENTE': '#EF553B'}, 
             labels={'volume_venda': 'Volume', 'produto_label': '', 'tipo_bandeira_clean': 'Tipo'}
         )
         

@@ -1,13 +1,20 @@
 import pandas as pd
+import logging
 from src.etl.db.connection import get_connection
 
-def load_volume_vendas(): # <-- Removido o argumento 'periodo'
-    print(f"Iniciando carga da Fato a partir da Silver (Período Automático)")
+logger = logging.getLogger("ETL_Gold_Fato_VolumeVendas")
+
+def load_volume_vendas():
+    logger.info("Iniciando carga da Fato (Volume Vendas) a partir da Silver (Período Automático)...")
+
+    conn = None
+    cursor = None
 
     try:
         conn = get_connection()
         cursor = conn.cursor()
 
+        logger.info("Buscando dados consolidados na camada Silver...")
         query_silver = """
             SELECT cod_regiao, cod_ean, si_conc_un, so_conc_un, pp_un, periodo 
             FROM silver.market_sales_clean
@@ -18,8 +25,10 @@ def load_volume_vendas(): # <-- Removido o argumento 'periodo'
         df_silver = pd.DataFrame(cursor.fetchall(), columns=columns)
 
         if df_silver.empty:
-            print("Camada Silver está vazia. Carga abortada.")
+            logger.warning("Camada Silver está vazia. Carga da Fato abortada.")
             return
+
+        logger.info(f"{len(df_silver)} registros recuperados da Silver. Aplicando unpivot (melt)...")
 
         mapa_bandeiras = {
             "pp_un": 1,
@@ -35,11 +44,13 @@ def load_volume_vendas(): # <-- Removido o argumento 'periodo'
         )
 
         df_long = df_long[df_long["volume_venda"] > 0].dropna(subset=["volume_venda"])
+        logger.info(f"Transformação concluída. {len(df_long)} ocorrências de vendas válidas identificadas.")
 
         sql_get_sk = """
             SELECT sk_produto FROM gold.produtos 
             WHERE id_produto_original = %s AND flag_ativo = TRUE
         """
+        
         sql_insert = """
             INSERT INTO gold.volume_vendas (id_regiao, id_bandeira, sk_produto, volume_venda, periodo)
             VALUES (%s, %s, %s, %s, %s)
@@ -48,9 +59,14 @@ def load_volume_vendas(): # <-- Removido o argumento 'periodo'
         """
 
         registros_inseridos = 0
+        produtos_nao_encontrados = set()
 
+        # 4. Inserção
+        logger.info("Iniciando inserção no banco de dados (isso pode levar alguns instantes)...")
         for _, row in df_long.iterrows():
-            cursor.execute(sql_get_sk, (int(row["cod_ean"]),))
+            ean_atual = int(row["cod_ean"])
+            
+            cursor.execute(sql_get_sk, (ean_atual,))
             res = cursor.fetchone()
 
             if res:
@@ -64,13 +80,25 @@ def load_volume_vendas(): # <-- Removido o argumento 'periodo'
                     row["periodo"]
                 ))
                 registros_inseridos += 1
+            else:
+                produtos_nao_encontrados.add(ean_atual)
 
         conn.commit()
-        print(f"Carga concluída! {registros_inseridos} registros processados automaticamente.")
+        logger.info(f"Carga da Fato concluída com sucesso! {registros_inseridos} registros processados e salvos.")
+
+        if produtos_nao_encontrados:
+            logger.warning(f"Atenção: {len(produtos_nao_encontrados)} produtos (EANs) não possuíam cadastro ativo na Dimensão Produtos e foram ignorados nesta carga.")
 
     except Exception as e:
-        print(f"Erro na carga da Fato: {e}")
-        if conn: conn.rollback()
+        logger.error(f"Erro crítico na carga da Tabela Fato: {e}", exc_info=True)
+        if conn: 
+            conn.rollback()
     finally:
-        if cursor: cursor.close()
-        if conn: conn.close()
+        if cursor: 
+            cursor.close()
+        if conn: 
+            conn.close()
+        logger.info("Conexão com o banco encerrada.")
+
+if __name__ == "__main__":
+    load_volume_vendas()
